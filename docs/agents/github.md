@@ -49,12 +49,12 @@ git push --force-with-lease
 1. **工作区与文档一致性**
    - `git status` 干净，无遗留临时文件、`.env` 密钥或跨切片改动；
    - 新增或修改 Markdown 文档时，相对路径链接全部有效；术语与既有 `GLOSSARY.md` / `docs/adr/`（若已存在）无静默冲突。
-2. **后端与数据库迁移检查**（当仓库已落盘 `apps/backend` 且改动涉及后端或 SQL 时）
-   - 通过 Maven 编译与测试（如 `./mvnw test` 或 `mvn test`）；
+2. **后端与数据库迁移检查**（当仓库已落盘 `backend/` 且改动涉及后端或 SQL 时）
+   - 在 `backend/` 下通过 Maven 编译与测试（如 `./mvnw test`）；
    - 严禁修改任何已合入 `dev` 的历史 Flyway 迁移脚本；同分支拉齐 `dev` 若发生迁移时间戳/序号冲突，仅顺延当前未合入分支的新增脚本并重跑迁移验证。
-3. **前端与契约同步检查**（当仓库已落盘 `pnpm-workspace.yaml` 且改动涉及前端或 REST 契约时）
-   - 变更后端接口契约（或拉齐 `dev` 带入契约更新）后，同步导出 `packages/shared/openapi.json` 并运行 `pnpm api:generate` 将 `packages/shared/src/api/generated/` 一并提交入库；遇 `generated/` 冲突严禁手解，直接重跑 `pnpm api:generate` 覆盖并确认 `git diff --exit-code` 为空；
-   - 通过工作区类型检查与构建（如 `pnpm typecheck` / `pnpm build`）。
+3. **前端与契约同步检查**（当仓库已落盘 `frontend/pnpm-workspace.yaml` 且改动涉及前端或 REST 契约时）
+   - 变更后端接口契约（或拉齐 `dev` 带入契约更新）后，同步导出 `frontend/packages/shared/openapi.json` 并在 `frontend/` 下运行 `pnpm api:generate` 将 `frontend/packages/shared/src/api/generated/` 一并提交入库；遇 `generated/` 冲突严禁手解，直接重跑 `pnpm api:generate` 覆盖并确认 `git diff --exit-code` 为空；
+   - 在 `frontend/` 下通过工作区类型检查与构建（如 `pnpm typecheck` / `pnpm build`）。
 4. **PR 检查与单向门确认**
    - 若仓库已启用 GitHub Actions CI，确认 PR 检查全绿；
    - 涉及数据库表结构迁移、密钥/配置、删除级联等单向门改动时，在 PR 正文写明影响范围与回滚方案，经人工确认后再执行 Squash merge。

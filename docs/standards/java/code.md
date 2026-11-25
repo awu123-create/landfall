@@ -1,6 +1,6 @@
 # Java 后端代码规范（Java Code Standard）
 
-编写或评审 `apps/backend/` 下的非测试 Java 代码时阅读本文件。通用规则与分级定义见 [CODING_STANDARDS.md](../../../CODING_STANDARDS.md)；REST 契约与错误码号段见 [docs/standards/api-contract.md](../api-contract.md)；表结构与 Flyway 规则见 [docs/standards/database.md](../database.md)。
+编写或评审 `backend/` 下的非测试 Java 代码时阅读本文件。通用规则与分级定义见 [CODING_STANDARDS.md](../../../CODING_STANDARDS.md)；REST 契约与错误码号段见 [docs/standards/api-contract.md](../api-contract.md)；表结构与 Flyway 规则见 [docs/standards/database.md](../database.md)。
 
 ## 模块化单体分包与可见性边界（Module boundaries）
 

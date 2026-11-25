@@ -1,13 +1,13 @@
 # Web 前端测试与校验规范（Web Testing Standard）
 
-校验前端或契约改动、以及在 `packages/shared/`、`packages/ui/`、`apps/web-user/`、`apps/web-admin/` 编写 Vitest 测试时阅读本文件。通用分级见 [CODING_STANDARDS.md](../../../CODING_STANDARDS.md)。
+校验前端或契约改动、以及在 `frontend/packages/shared/`、`frontend/packages/ui/`、`frontend/apps/web-user/`、`frontend/apps/web-admin/` 编写 Vitest 测试时阅读本文件。通用分级见 [CODING_STANDARDS.md](../../../CODING_STANDARDS.md)。
 
 ## 每次改动的硬门禁（Verifying a change）
 
-当工作区脚手架落盘后，任何涉及前端源码或 `packages/shared/openapi.json` 的 PR 必须按顺序通过以下三项检查：
+当 `frontend/` 工作区脚手架落盘后，任何涉及前端源码或 `frontend/packages/shared/openapi.json` 的 PR 必须按顺序通过以下三项检查（在 `frontend/` 下执行）：
 
-1. **生成代码与契约零漂移**：导出最新 OpenAPI 并执行 `pnpm api:generate` 后，`git diff --exit-code` 必须为空（确保已入库的 `packages/shared/src/api/generated/` 与契约完全同步）；
-2. **全工作区类型检查（`vue-tsc --noEmit`）**：`packages/shared`、`packages/ui`、`apps/web-user`、`apps/web-admin` 零 TypeScript / Vue 模板类型错误；
+1. **生成代码与契约零漂移**：导出最新 OpenAPI 并执行 `pnpm api:generate` 后，`git diff --exit-code` 必须为空（确保已入库的 `frontend/packages/shared/src/api/generated/` 与契约完全同步）；
+2. **全工作区类型检查（`vue-tsc --noEmit`）**：`frontend/packages/shared`、`frontend/packages/ui`、`frontend/apps/web-user`、`frontend/apps/web-admin` 零 TypeScript / Vue 模板类型错误；
 3. **单元与契约测试 + 生产构建**：Vitest 测试全绿且双端 `vite build` 正常产出。
 
 ## 自动化测试聚焦范围（What to unit test）
