@@ -1,0 +1,23 @@
+# Dependencies & build outputs
+node_modules/
+dist/
+target/
+*.log
+
+# Build-time generated API client
+packages/shared/src/api/generated/
+
+# Local secrets & runtime uploads
+.env
+.env.*
+!.env.example
+uploads/
+
+# IDE & OS
+.idea/
+.vscode/
+*.iml
+.DS_Store
+
+# Local git worktrees
+/.worktrees/
