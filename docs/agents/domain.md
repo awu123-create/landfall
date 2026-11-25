@@ -21,8 +21,8 @@
 ├── docs/adr/
 │   ├── 0001-opaque-token-and-rbac-session.md
 │   └── 0002-post-visibility-and-moderation-state.md
-├── apps/
-└── packages/
+├── backend/
+└── frontend/
 ```
 
 ## 遵守词汇表用语

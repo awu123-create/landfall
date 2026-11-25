@@ -1,6 +1,6 @@
 # 记录同步规范（Records Standard）
 
-当改动改变系统对外行为或契约（REST API、`packages/shared/openapi.json`、错误码、环境变量、数据库表结构、测试或 CI 门禁），或新增 ADR 与维护 `docs/` 文档时阅读本文件。通用分级见 [CODING_STANDARDS.md](../../CODING_STANDARDS.md)。
+当改动改变系统对外行为或契约（REST API、`frontend/packages/shared/openapi.json`、错误码、环境变量、数据库表结构、测试或 CI 门禁），或新增 ADR 与维护 `docs/` 文档时阅读本文件。通用分级见 [CODING_STANDARDS.md](../../CODING_STANDARDS.md)。
 
 ## 权威记录与同 PR 同步
 

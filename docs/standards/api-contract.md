@@ -1,6 +1,6 @@
 # 接口契约规范（API Contract Standard）
 
-新增或修改后端 Controller 路由、请求/响应 DTO、SpringDoc OpenAPI 注解、错误码或 `packages/shared/openapi.json` 时阅读本文件。调用方原则与通用分级见 [CODING_STANDARDS.md](../../CODING_STANDARDS.md)。
+新增或修改后端 Controller 路由、请求/响应 DTO、SpringDoc OpenAPI 注解、错误码或 `frontend/packages/shared/openapi.json` 时阅读本文件。调用方原则与通用分级见 [CODING_STANDARDS.md](../../CODING_STANDARDS.md)。
 
 ## 路由前缀与资源路径（Paths）
 
@@ -44,6 +44,6 @@ HTTP 状态码表达传输与认证语义，业务分支判断**仅依赖 `Error
 
 ## OpenAPI 快照与 Orval 生成流水线（Contract generation）
 
-1. **契约与生成代码一并提交入库（严禁手改）**：后端新增或修改 Controller 路由、参数、DTO 字段或枚举时，在同一提交中导出更新 `packages/shared/openapi.json`，并运行 `pnpm api:generate`（Orval 按 `@Tag` 拆分，仅生成纯请求函数与 TypeScript 类型，排除二进制媒体流端点）将 `packages/shared/src/api/generated/` 一并提交入库。GitHub 上看代码可直接追踪生成的函数与类型签名；根目录 `.gitattributes` 通过 `packages/shared/src/api/generated/** linguist-generated=true` 自动折叠 PR 中的生成文件 Diff 噪音。
-2. **合并冲突零手解规矩**：拉齐 `origin/dev` 时只要 `packages/shared/src/api/generated/` 出现冲突（或双边均修改过接口契约），**永远不手解 `generated/` 冲突**，对齐 `openapi.json` 后直接重跑一行 `pnpm api:generate` 全量覆盖。
-3. **CI 防漏同步与类型门禁**：CI 流水线依次执行导出 OpenAPI → `pnpm api:generate` → `git diff --exit-code`（忘记重新生成提交直接红灯阻断），并运行全工作区 `vue-tsc --noEmit` 确保双端调用点零类型错误。
+1. **契约与生成代码一并提交入库（严禁手改）**：后端新增或修改 Controller 路由、参数、DTO 字段或枚举时，在同一提交中导出更新 `frontend/packages/shared/openapi.json`，并在 `frontend/` 下运行 `pnpm api:generate`（Orval 按 `@Tag` 拆分，仅生成纯请求函数与 TypeScript 类型，排除二进制媒体流端点）将 `frontend/packages/shared/src/api/generated/` 一并提交入库。GitHub 上看代码可直接追踪生成的函数与类型签名；根目录 `.gitattributes` 通过 `frontend/packages/shared/src/api/generated/** linguist-generated=true` 自动折叠 PR 中的生成文件 Diff 噪音。
+2. **合并冲突零手解规矩**：拉齐 `origin/dev` 时只要 `frontend/packages/shared/src/api/generated/` 出现冲突（或双边均修改过接口契约），**永远不手解 `generated/` 冲突**，对齐 `openapi.json` 后直接在 `frontend/` 下重跑一行 `pnpm api:generate` 全量覆盖。
+3. **CI 防漏同步与类型门禁**：CI 流水线依次执行导出 OpenAPI → `pnpm --dir frontend api:generate` → `git diff --exit-code`（忘记重新生成提交直接红灯阻断），并在 `frontend/` 下运行全工作区 `vue-tsc --noEmit` 确保双端调用点零类型错误。

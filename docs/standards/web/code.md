@@ -1,16 +1,16 @@
 # Web 前端代码规范（Web Code Standard）
 
-编写或评审 `apps/web-user/`、`apps/web-admin/`、`packages/ui/` 与 `packages/shared/` 源码时阅读本文件。通用规则与分级见 [CODING_STANDARDS.md](../../../CODING_STANDARDS.md)；接口契约与 Orval 生成规则见 [docs/standards/api-contract.md](../api-contract.md)。
+编写或评审 `frontend/apps/web-user/`、`frontend/apps/web-admin/`、`frontend/packages/ui/` 与 `frontend/packages/shared/` 源码时阅读本文件。通用规则与分级见 [CODING_STANDARDS.md](../../../CODING_STANDARDS.md)；接口契约与 Orval 生成规则见 [docs/standards/api-contract.md](../api-contract.md)。
 
-`packages/shared/src/api/generated/` 由 `pnpm api:generate` 自动生成并提交入库（`.gitattributes` 默认折叠），不在手写代码评审范围内（严禁手工修改或手解合并冲突）。
+`frontend/packages/shared/src/api/generated/` 由 `frontend/` 下的 `pnpm api:generate` 自动生成并提交入库（`.gitattributes` 默认折叠），不在手写代码评审范围内（严禁手工修改或手解合并冲突）。
 
 ## 工作区职责与应用内分层（Layers and boundaries）
 
-前端 Monorepo 分四个明确边界：
+`frontend/` 下的 `pnpm workspace` 分四个明确边界：
 
-- **`@landfall/shared`（`packages/shared`）**：承载入库的 `openapi.json` 与 Orval 生成并提交入库的纯请求函数/TS 类型（`src/api/generated/`）、统一 Axios `mutator.ts`（注入 `Bearer` 令牌、校验 `code === 0` 自动解包内层 `data`、按业务码分发 `401` `20001`/`20006` 与错误提示）以及跨端共享业务常量。保持纯 TypeScript，不耦合 Vue 组件。
-- **`@landfall/ui`（`packages/ui`）**：双端共用的无业务语义设计系统底座，存放 `shadcn-vue`（底层 `reka-ui`）基础原语（`Button`、`Dialog`、`Input`、`Table`、`Checkbox`、`Skeleton` 等）、`cn()` 工具函数与基础 CSS 变量。
-- **`@landfall/web-user`（`apps/web-user`）** 与 **`@landfall/web-admin`（`apps/web-admin`）**：两个独立 Vue 3 应用，各自内部统一按以下四层单向依赖组织：
+- **`@landfall/shared`（`frontend/packages/shared`）**：承载入库的 `openapi.json` 与 Orval 生成并提交入库的纯请求函数/TS 类型（`src/api/generated/`）、统一 Axios `mutator.ts`（注入 `Bearer` 令牌、校验 `code === 0` 自动解包内层 `data`、按业务码分发 `401` `20001`/`20006` 与错误提示）以及跨端共享业务常量。保持纯 TypeScript，不耦合 Vue 组件。
+- **`@landfall/ui`（`frontend/packages/ui`）**：双端共用的无业务语义设计系统底座，存放 `shadcn-vue`（底层 `reka-ui`）基础原语（`Button`、`Dialog`、`Input`、`Table`、`Checkbox`、`Skeleton` 等）、`cn()` 工具函数与基础 CSS 变量。
+- **`@landfall/web-user`（`frontend/apps/web-user`）** 与 **`@landfall/web-admin`（`frontend/apps/web-admin`）**：两个独立 Vue 3 应用，各自内部统一按以下四层单向依赖组织：
 
 | 调用方 \ 被调用方 | `views/` | `layouts/` | `features/*/index.ts` | 其他 `features/*` 内部文件 | `@landfall/shared` & `@landfall/ui` |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -45,5 +45,5 @@
 ## 样式令牌、组件复用与无障碍（Styling and accessibility）
 
 - **统一 Tailwind CSS v4 + `shadcn-vue`（`reka-ui`）**：双端不再引入第二套重型 UI 组件库。管理后台复杂数据表格统一基于 `@landfall/ui` 的 `Table` 搭配 `@tanstack/vue-table` 构建；RBAC 角色权限树统一基于 `reka-ui` 的 `TreeRoot` + `Checkbox`（含父子节点级联与 `indeterminate` 半选态）构建；统计图表使用 `ECharts`。
-- **保护 `@landfall/ui` 纯净原语**：`packages/ui` 中的组件保持无业务耦合的原语形态；`apps/web-user` 与 `apps/web-admin` 在各自入口 CSS 中配置 `@source` 扫描 `packages/ui`，并通过 `@theme` 与 CSS 变量定义各自主题令牌（社区主色、圆角、阴影）。业务组件优先引用语义主题类，禁止散落硬编码色值或从外部强行覆盖原语内部 DOM 选择器。
+- **保护 `@landfall/ui` 纯净原语**：`frontend/packages/ui` 中的组件保持无业务耦合的原语形态；`frontend/apps/web-user` 与 `frontend/apps/web-admin` 在各自入口 CSS 中配置 `@source` 扫描 `frontend/packages/ui`，并通过 `@theme` 与 CSS 变量定义各自主题令牌（社区主色、圆角、阴影）。业务组件优先引用语义主题类，禁止散落硬编码色值或从外部强行覆盖原语内部 DOM 选择器。
 - **无障碍可定位名称（Accessible names）**：纯图标按钮（点赞、收藏、关闭弹窗、删除图片）必须提供准确的中文 `aria-label`，内部图标加 `aria-hidden="true"`；列表中每行重复的操作按钮（如后台封禁、删除评论、移除第 N 张上传图）在 `aria-label` 中带上目标标识，既保障可访问性也便于测试精准定位。

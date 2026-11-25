@@ -1,6 +1,6 @@
 # Java 后端测试规范（Java Testing Standard）
 
-编写或评审 `apps/backend/src/test/` 下的测试代码时阅读本文件。通用分级见 [CODING_STANDARDS.md](../../../CODING_STANDARDS.md)。
+编写或评审 `backend/src/test/` 下的测试代码时阅读本文件。通用分级见 [CODING_STANDARDS.md](../../../CODING_STANDARDS.md)。
 
 ## 测试分层与唯一归属（Owners）
 

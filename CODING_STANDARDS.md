@@ -17,13 +17,13 @@
 
 - 抑制注释（`@SuppressWarnings`、`eslint-disable-next-line`、`@ts-expect-error`）必须在同行或紧邻行写明具体规则名与该处属于**误报**的原因。
 - 抑制注释、排除规则或仅测试分支只允许用来处理工具误报；用它屏蔽真实问题让构建变绿属于违规，必须直接修代码。唯一例外是新启用检查规则时的既有问题基线清单，且后续提交只允许删减、不得新增。
-- **生成代码入库、折叠与防漂移**：`packages/shared/openapi.json` 与 Orval 生成的 `packages/shared/src/api/generated/` **一并提交入库且严禁手工编辑**（根目录 `.gitattributes` 配置 `linguist-generated=true` 在 GitHub PR 中默认折叠）；遇 `generated/` 合并冲突时**永远不手解冲突**，直接重跑 `pnpm api:generate` 覆盖；CI 执行导出 OpenAPI → `pnpm api:generate` → `git diff --exit-code` 阻断漏同步（详见 [docs/standards/api-contract.md](./docs/standards/api-contract.md)）。
+- **生成代码入库、折叠与防漂移**：`frontend/packages/shared/openapi.json` 与 Orval 生成的 `frontend/packages/shared/src/api/generated/` **一并提交入库且严禁手工编辑**（根目录 `.gitattributes` 配置 `linguist-generated=true` 在 GitHub PR 中默认折叠）；遇 `generated/` 合并冲突时**永远不手解冲突**，直接在 `frontend/` 下重跑 `pnpm api:generate` 覆盖；CI 执行导出 OpenAPI → `pnpm --dir frontend api:generate` → `git diff --exit-code` 阻断漏同步（详见 [docs/standards/api-contract.md](./docs/standards/api-contract.md)）。
 
 ## 就近放置与抽取（Placement and extraction）
 
 代码默认**就近放置**：表达式留在调用点，直到同一业务决策出现第 3 次（Rule of Three）暴露出真正共性再抽取，确保读者多跳的每一层都物有所值。
 
-- 辅助函数从私有、放在调用方同文件起步；只有下一个作用域出现真实调用方时，才按 `同文件 → 同模块/同特性 → 公共包（common / packages/*）` 逐级外移，并带着对应测试一起移。
+- 辅助函数从私有、放在调用方同文件起步；只有下一个作用域出现真实调用方时，才按 `同文件 → 同模块/同特性 → 公共包（common / frontend/packages/*）` 逐级外移，并带着对应测试一起移。
 - 新增辅助函数或组件前先检索仓库是否已有同类实现；换个名字复制一份，或在调用点内联重写同一业务规则，同样视为重复。
 - 共享业务常量、上限阈值、错误码与枚举集合在第 2 处使用时即提炼为命名常量或类型，不在多处手写重复字面量；同一条业务规则（如标签归一化、作品可见性判定）全仓只保留唯一实现。
 - 仅原样转发参数或拼固定值、不增加任何业务决策也不收窄类型边界的函数、包装类、1:1 空接口（如单一实现的 `IXxxService`）或测试 helper 属于**无意义透传（pass-through）**，无论有多少调用方一律内联删除。
