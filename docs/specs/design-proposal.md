@@ -1,7 +1,7 @@
 # Landfall（见屿）多媒体社区展示系统 · 总体设计纲要
 
 > **规划边界**：本文件位于 `docs/specs/`，作为全局产品范围、架构取舍、跨模块业务不变量与 8 人工作包边界的**规划上下文**，**不代表当前仓库已落地的代码目录树**，也不镜像活任务状态与排期（活任务统一维护在 GitHub Issues，见 [docs/agents/issue-tracker.md](../agents/issue-tracker.md)）。
-> **命名约定**：中文名 **见屿**，英文名与仓库目录 **`landfall`**；前端工作区包名 **`@landfall/web-user`**、**`@landfall/web-admin`**、**`@landfall/shared`**；后端 Java 根包名 **`com.landfall`**。
+> **命名约定**：中文名 **见屿**，英文名与仓库目录 **`landfall`**；前端工作区包名 **`@landfall/web-user`**、**`@landfall/web-admin`**、**`@landfall/ui`**、**`@landfall/shared`**；后端 Java 根包名 **`com.landfall`**。
 
 ---
 
@@ -33,10 +33,11 @@
 
 | 层次 | 选型 | 核心取舍依据 |
 | :--- | :--- | :--- |
-| **双前端与共享层** | Vue 3 + TypeScript + Vite + Pinia + Vue Router；用户端 Tailwind CSS + `hls.js`；管理端 Element Plus + ECharts；`pnpm workspace` | 物理隔离用户端瀑布流样式与后台组件库，通过 `@landfall/shared` 共享自动生成的请求客户端、统一拦截器与常量 |
-| **后端与数据访问** | Java 17 + Spring Boot 3.x + MyBatis-Plus + Flyway + PostgreSQL 16 + Redis 7 | 模块化单体按业务分包隔离写作用域；全库主键与外键统一使用原生 `UUID`（**UUIDv7** 时间有序前缀），消除前端 JS 64 位整数精度截断与自增 ID 遍历风险；所有时间列统一用 `TIMESTAMPTZ` |
+| **双前端与设计系统** | Vue 3 + TypeScript + Vite + Vue Router + Tailwind CSS v4 + `shadcn-vue`（`reka-ui`）；用户端配 `hls.js`；管理端配 `@tanstack/vue-table` + ECharts；`pnpm workspace` | 双端统一一套 Tailwind v4 + `shadcn-vue` 技术栈，无业务语义的 UI 原语沉淀在共享包 `@landfall/ui`（`packages/ui`），省去同时维护两套组件库的心智负担 |
+| **前端状态管理** | `@tanstack/vue-query`（服务端状态）+ Pinia Setup Store（纯客户端状态） | 服务端缓存、加载态与写后联动刷新统一归 `@tanstack/vue-query`（各业务特性自持层级 Query Key）；Pinia 仅存登录态与纯客户端 UI 状态 |
+| **后端与模块边界** | Java 17 + Spring Boot 3.x + MyBatis-Plus（仅 `BaseMapper`）+ Flyway + PostgreSQL 16 + Redis 7 + ArchUnit | 按 Spring Modulith 范式组织业务模块（模块根包暴露跨模块公开 API 与 `record` DTO，`.internal` 收敛私有实现，ArchUnit 单测守住边界）；全表主键统一使用原生 `UUID`（**UUIDv7**），时间列统一 `TIMESTAMPTZ` |
 | **认证与权限底座** | Spring Security 6 + Redis 不透明 Token + 5 表树形 RBAC | 单后端每次请求均需校验封禁与动态权限，采用不透明 Token 原生支持滑动续期与删 key 毫秒级全端踢下线，省去前端并发 401 刷新锁复杂度 |
-| **接口契约流水线** | SpringDoc OpenAPI 3 + Knife4j + Orval | 后端显式返回 `ApiResponse<T>` 泛型信封（规避裸 `String` 转换异常并保证文档与真实响应一致）；前端构建期调 Orval 生成强类型客户端且生成目录 gitignore 不入库（媒体二进制流接口排除在外） |
+| **接口契约流水线** | SpringDoc OpenAPI 3 + Knife4j + `packages/shared/openapi.json` + Orval | 后端显式返回 `ApiResponse<T>` 并导出 `openapi.json`，`@landfall/shared` 运行 `pnpm api:generate` 生成纯请求函数与 TS 类型一并提交入库（`.gitattributes` 折叠 PR diff，遇冲突重跑 `pnpm api:generate` 覆盖，CI `git diff --exit-code` 防漏同步） |
 | **存储与外部依赖** | `StorageAdapter`（LocalDisk / S3）+ FFmpeg 外部进程 + OpenAI 兼容接口 | 本机默认连 Docker PG（库名/账号 `landfall`，密码 `landfall123`）+ Redis + 本地磁盘；无 FFmpeg 或未配大模型密钥时自动降级，核心链路零阻塞 |
 
 ---
@@ -91,26 +92,26 @@
 
 ### 4.1 包 1 两阶段解阻塞里程碑
 
-- **阶段 1（地基解锁，最优先交付）**：完成 Monorepo 脚手架、本机 Docker Compose、RBAC 与活跃日志基础迁移、公共层（`ApiResponse`、异常与错误码、UUIDv7、安全上下文、活跃日志记录器）、不透明 Token 注册/登录/登出/`me`、SpringDoc + Orval 生成链路及用户端登录弹窗骨架。合入 `dev` 后包 2~包 7 即可并行拉分支开发。
+- **阶段 1（地基解锁，最优先交付）**：完成 Monorepo 脚手架（含 `@landfall/ui` `shadcn-vue` 底座、`@landfall/shared` Orval 生成入库链路与 `@tanstack/vue-query` 挂载）、本机 Docker Compose、RBAC 与活跃日志基础迁移、后端公共层（`ApiResponse`、异常与错误码、UUIDv7、安全上下文、活跃日志记录器、ArchUnit 边界测试）、不透明 Token 注册/登录/登出/`me` 及用户端 `features/auth/` 登录弹窗骨架。合入 `dev` 后包 2~包 7 即可并行拉分支开发。
 - **阶段 2（完整权限与后台管理接口）**：补齐改密全端踢下线、`admin:access` 准入、5 表树形 RBAC 角色与权限树 CRUD 及缓存批量失效、后台用户管理（分页、封禁、软删级联、重置密码、分配角色）与越权测试。
 
 ### 4.2 工作包职责矩阵
 
-| 工作包 | 负责人 | 后端模块职责 | 前端页面壳 / 独立组件职责 | 跨包协作接口 |
+| 工作包 | 负责人 | 后端模块职责 | 前端 `views/` 薄壳与 `features/<domain>/` 职责 | 跨包协作接口 |
 | :---: | :--- | :--- | :--- | :--- |
-| **包 1** | **曾子煜** | `common`、`auth`（地基、UUIDv7、不透明 Token、5 表 RBAC、后台用户与角色权限接口、活跃日志工具） | 用户端登录/注册弹窗、改密页；`@landfall/shared` 请求拦截器与 Orval 配置 | 向全组提供安全上下文；向包 6 提供用户与 RBAC 后端接口 |
-| **包 2** | **李悦凯** | `storage`、`media`、`post` 写链路（先传后绑、缩略图、FFmpeg HLS/Range、作品 CRUD、`PostAccessPolicy`、标签写） | 用户端发布/编辑页；独立组件 `MediaUploader`、`VideoPlayer` | 暴露 `PostAccessPolicy`；支撑包 3 作品读取与包 6 内容/标签管理 |
-| **包 3** | **韩瑞凯** | `post` 只读与多维检索（瀑布流分页、详情聚合、`ILIKE` + 标签 + 日期区间检索、我的作品列表） | 用户端导航布局壳与 Tailwind 主题变量、发现页、详情页壳、搜索页、我的作品、`WaterfallGrid`、`PostCard` | 详情页壳预留包 2/4/5/7 插槽；首页推荐流调用包 7 排序服务 |
-| **包 4** | **张锦泽** | `interaction`（作品赞藏、两级评论与评论赞、`CommentAccessPolicy`、1~5 星评分汇总） | 独立组件 `ActionBar`、`RatingBox`、`CommentDrawer`（挂详情页壳）；我的收藏页 | 评论写入前调包 7 DFA；配合包 6 评论管理 |
-| **包 5** | **叶立铭** | `social`（关注/取关、`EXISTS` 互关好友判定、粉丝/关注列表、关注流、个人主页聚合） | 用户端个人主页壳、关注流页；独立组件 `FollowButton` | 向包 2 `PostAccessPolicy` 提供互关判定；个人主页复用包 3 `PostCard` |
-| **包 6** | **周家琦** | `admin`（后台作品、评论、标签聚合查询与管理接口，委托包 2/4 服务） | 管理后台全局布局、登录与 `admin:access` 路由守卫；用户、RBAC、作品、评论、标签 5 个管理页 | 优先交付后台布局壳供包 7 挂载页面；用户与 RBAC 页对接包 1 |
-| **包 7** | **李希宇** | `moderation`、`ai`、`stat`（DFA 热更新、阿瓦隆评论与 6 态审核机 + 补偿、双配额大模型三场景、推荐排序、统计接口） | 管理后台看板页、待复审队列页、敏感词页；用户端组件 `AiPublishHelper`、`AiSummaryCard` | 向包 1/2/4 暴露同步 DFA 与异步送审；向包 3 提供推荐排序 |
+| **包 1** | **曾子煜** | `common`、`auth`（地基、UUIDv7、不透明 Token、5 表 RBAC、后台用户与角色权限接口、活跃日志工具、ArchUnit 门禁） | `@landfall/ui` 基础初始化、`@landfall/shared` 拦截器与 Orval 配置；用户端 `features/auth/`（登录/注册弹窗、改密） | 向全组提供安全上下文与共享包底座；向包 6 提供用户与 RBAC 后端接口 |
+| **包 2** | **李悦凯** | `storage`、`media`、`post` 写链路（先传后绑、缩略图、FFmpeg HLS/Range、作品 CRUD、`PostAccessPolicy`、标签写） | 用户端发布/编辑页壳；`features/media/`（`MediaUploader`、`VideoPlayer`）与 `features/post-editor/` | 暴露 `PostAccessPolicy`；支撑包 3 作品读取与包 6 内容/标签管理 |
+| **包 3** | **韩瑞凯** | `post` 只读与多维检索（瀑布流分页、详情聚合、`ILIKE` + 标签 + 日期区间检索、我的作品列表） | 用户端响应式导航布局壳与社区主题色变量、发现/详情/搜索/我的作品薄页面壳、`features/feed/`（`WaterfallGrid`、`PostCard`） | 详情页壳拼装包 2/4/5/7 特性出口组件；首页推荐流调用包 7 排序服务 |
+| **包 4** | **张锦泽** | `interaction`（作品赞藏、两级评论与评论赞、`CommentAccessPolicy`、1~5 星评分汇总） | `features/interaction/`（`ActionBar`、`RatingBox`、`CommentDrawer`、收藏列表）与我的收藏薄页面壳 | 评论写入前调包 7 DFA；写操作通过 Query Key 失效自动联动刷新详情与列表 |
+| **包 5** | **叶立铭** | `social`（关注/取关、`EXISTS` 互关好友判定、粉丝/关注列表、关注流、个人主页聚合） | 个人主页壳、关注流页壳；`features/social/`（`FollowButton`、关注/粉丝列表、主页头） | 向包 2 `PostAccessPolicy` 提供互关判定；个人主页组合包 3 `PostCard` |
+| **包 6** | **周家琦** | `admin`（后台作品、评论、标签聚合查询与管理接口，委托包 2/4 公开服务） | 管理后台全局布局、登录与 `admin:access` 守卫；用户、RBAC（`reka-ui` `TreeRoot`）、作品、评论、标签 5 个特性与页面（`@tanstack/vue-table`） | 优先交付后台布局壳供包 7 挂载页面；用户与 RBAC 对接包 1 接口 |
+| **包 7** | **李希宇** | `moderation`、`ai`、`stat`（DFA 热更新、阿瓦隆评论与 6 态审核机 + 补偿、双配额大模型三场景、推荐排序、统计接口） | 管理后台看板（ECharts）、待复审队列、敏感词特性与页面；用户端 `features/ai-assist/`（`AiPublishHelper`、`AiSummaryCard`） | 向包 1/2/4 暴露同步 DFA 与异步送审；向包 3 提供推荐排序 |
 | **包 8** | **陈建辉** | **不改前后端业务代码**；维护云端部署编排、含合规图视素材的种子脚本与全链路冒烟/回归测试集 | 全站交互走查与 Issue 提报；汇总测试计划、四个课程附件、实验报告统稿与答辩材料 | 独立验收各包合入 `dev` 的功能完整性 |
 
 ### 4.3 并行协作 5 条防冲突硬规则
 
-1. **页面壳 + 独立组件插槽隔离**：禁止多人混改同一 `.vue` 大文件。详情页壳归包 3（包 2/4/5/7 各自维护独立组件挂载），个人主页壳归包 5（复用包 3/4 列表组件），管理后台布局壳归包 6（包 7 独立维护看板、复审队列与敏感词三页）。
+1. **前端薄 `views/` + `features/<domain>/index.ts` 物理隔离**：各工作包在所属 `features/<domain>/` 内开发组件、Query Key 与局部逻辑，只经 `index.ts` 向外暴露公开组件；`views/` 只做百行内的布局与组装，禁止多人混改大组件或跨特性深层导入私有文件。
 2. **Flyway 迁移只增不改、日常开发隔离共享库**：日常开发默认连本机 Docker；表结构变更一律新增时间戳迁移脚本，**严禁修改任何已合入 `dev` 的历史 SQL 脚本**。
-3. **契约生成物不入库**：后端变更接口须同步维护 OpenAPI 注解，前端本地与 CI 构建期生成 `@landfall/shared` 客户端，消除生成代码合并冲突；改动公共底座或共享拦截器须经跨包评审。
+3. **生成代码入库折叠、冲突重跑覆盖与 CI 防漂移**：`packages/shared/openapi.json` 与 `src/api/generated/` 一并提交入库（GitHub 看代码上下文完整，`.gitattributes` `linguist-generated=true` 自动折叠 PR diff）；只要 `generated/` 冲突，**永远不手解冲突**，直接重跑 `pnpm api:generate` 覆盖；CI 执行导出 OpenAPI → `pnpm api:generate` → `git diff --exit-code` 阻断漏同步。
 4. **分支规范与密钥隔离**：开发分支统一从 `origin/dev` 按 `<type>/<id>-<slug>` 切出并通过 Squash merge 合入 `dev`（详见 [docs/agents/github.md](../agents/github.md)）；API Key、云端数据库密码与上传物理路径统一走环境变量与 `.env`，严禁入库。
 5. **外部依赖可降级**：无 FFmpeg 自动走 HTTP `Range` 播放，无大模型密钥或超时自动提示降级并将待审内容转 `MANUAL_REVIEW`，保障核心社区功能离线可跑通。

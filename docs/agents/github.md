@@ -53,7 +53,7 @@ git push --force-with-lease
    - 通过 Maven 编译与测试（如 `./mvnw test` 或 `mvn test`）；
    - 严禁修改任何已合入 `dev` 的历史 Flyway 迁移脚本；同分支拉齐 `dev` 若发生迁移时间戳/序号冲突，仅顺延当前未合入分支的新增脚本并重跑迁移验证。
 3. **前端与契约同步检查**（当仓库已落盘 `pnpm-workspace.yaml` 且改动涉及前端或 REST 契约时）
-   - 变更后端接口契约后刷新 `@landfall/shared` 生成客户端（生成产物保持 gitignore 不入库）；
+   - 变更后端接口契约（或拉齐 `dev` 带入契约更新）后，同步导出 `packages/shared/openapi.json` 并运行 `pnpm api:generate` 将 `packages/shared/src/api/generated/` 一并提交入库；遇 `generated/` 冲突严禁手解，直接重跑 `pnpm api:generate` 覆盖并确认 `git diff --exit-code` 为空；
    - 通过工作区类型检查与构建（如 `pnpm typecheck` / `pnpm build`）。
 4. **PR 检查与单向门确认**
    - 若仓库已启用 GitHub Actions CI，确认 PR 检查全绿；
