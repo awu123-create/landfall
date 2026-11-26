@@ -9,7 +9,7 @@
 ```text
 com.landfall.module.post/                # 模块公开边界（其他模块唯一允许引用的包）
 ├── PostAccessPolicy.java                # 跨模块公开策略或门面 Service（public）
-├── PostSummaryDto.java                  # 跨模块传递的不可变 Java 17 record（public）
+├── PostSummaryDto.java                  # 跨模块传递的不可变 Java 21 record（public）
 └── internal/                            # 模块私有实现（ArchUnit 强门禁拦截外部访问）
     ├── PostController.java              # HTTP 路由入口（package-private 或 internal 内置）
     ├── PostService.java                 # 具体 @Service 业务类（不建 IXxxService 空接口）
@@ -20,7 +20,7 @@ com.landfall.module.post/                # 模块公开边界（其他模块唯�
 - **跨模块硬隔离**：模块 A（如 `admin`、`interaction`、`ai`）只允许通过构造器注入调用模块 B **根包**公开的 Service / `AccessPolicy` 方法及不可变 `record` DTO / Spring 事件；**严禁跨模块 `import` 他人 `.internal.*` 下的任何类（尤其是他人的 `Mapper` 与 `Entity`）**。该边界由常驻 `ArchUnit` 架构测试在 `mvn test` 阶段机械强制执行。
 - **禁止 `IXxxService + XxxServiceImpl` 反模式**：Spring Boot 默认基于 CGLIB 代理具体类，单实现的业务服务直接编写具体的 `@Service` 类，**禁止建立 1:1 透传接口对**，更**严禁继承 MyBatis-Plus 的 `IService<Entity>` / `ServiceImpl<Mapper, Entity>`**（防止自动暴露 40 余个绕过权限与敏感词校验的裸表读写方法）。仅当系统内真有多个可替换实现时（如 `StorageAdapter` 的 `LocalDiskStorageAdapter` 与 `S3StorageAdapter`）才定义接口。
 - **持久化细节零外泄**：`Controller` 只负责 HTTP 参数绑定（`@Valid`）、读取当前登录上下文、调用本模块 Service 并包装返回 `ApiResponse<XxxResp>`；**严禁在 `Controller` 中直接注入 `Mapper`、拼装 `LambdaQueryWrapper` 或将 `Entity` 暴露为接口入参/出参**。
-- **DTO 统一使用 Java 17 `record`**：所有 HTTP 请求体（`*Req`）、响应体（`*Resp`）与跨模块传输对象统一声明为不可变 `record`；`Entity ↔ record` 转换使用模块内显式静态工厂或轻量转换方法，不引入重型反射拷贝工具（如 `BeanUtils.copyProperties`，编译期无法发现字段名拼写错位或类型不兼容）。
+- **DTO 统一使用 Java 21 `record`**：所有 HTTP 请求体（`*Req`）、响应体（`*Resp`）与跨模块传输对象统一声明为不可变 `record`；`Entity ↔ record` 转换使用模块内显式静态工厂或轻量转换方法，不引入重型反射拷贝工具（如 `BeanUtils.copyProperties`，编译期无法发现字段名拼写错位或类型不兼容）。
 
 **Judgement.** 单文件超过 500~800 行或混杂读写两条重逻辑（如 `post` 的写链路与复杂多维检索读链路）时，按读写职责在 `.internal` 内拆分为聚焦的服务类（如 `PostCommandService` 与 `PostQueryService`）。
 
@@ -32,7 +32,7 @@ com.landfall.module.post/                # 模块公开边界（其他模块唯�
 ## 数据访问、事务与并发安全（Persistence and transactions）
 
 - **类型安全条件构造**：模块内单表动态查询一律使用 `LambdaQueryWrapper` / `LambdaUpdateWrapper`（如 `Wrappers.<PostEntity>lambdaQuery().eq(PostEntity::getStatus, ...)`），**严禁使用字符串硬编码列名的 `QueryWrapper` / `UpdateWrapper`**，严禁将未校验的前端入参拼入 `.apply()` 或 `.last()`。
-- **分页上限与禁 N+1**：所有分页入口在边界或公共分页参数上强制收口 `pageSize <= 100`；列表关联作者昵称头像、标签集合、当前用户是否已赞/互关等批量数据，必须通过 `IN` 批量查询内存组装或 Mapper XML 关联 SQL 一次取回，**严禁在 `for` / `stream` 循环内逐行查库或查 Redis**。
+- **分页可配置上限与禁 N+1**：分页默认值（默认 `20`）与上限（默认 `100`）统一经 `PaginationProperties`（`landfall.pagination.*`）配置并在启动期校验 `1 <= defaultSize <= maxSize`；所有分页入口通过 `PaginationProperties.resolve(page, pageSize)` 归一化为 `PageQuery`（缺省取默认值，`pageSize > maxSize` 静默钳位至 `maxSize`，`page < 1` 或 `pageSize < 1` 显式抛 `BusinessException` 返回 `400` / `10400`）；`PageResult<T>` 仅守结构不变量、不硬编码上限。列表关联作者昵称头像、标签集合、当前用户是否已赞/互关等批量数据，必须通过 `IN` 批量查询内存组装或 Mapper XML 关联 SQL 一次取回，**严禁在 `for` / `stream` 循环内逐行查库或查 Redis**。
 - **短事务红线**：`@Transactional(rollbackFor = Exception.class)` 只包裹纯数据库读写原子单元；**严禁在数据库事务内发起外部大模型 HTTP 调用、对象存储大文件上传或同步执行 FFmpeg 进程**（先落库提交状态或使用事务提交后钩子/异步任务投递，避免慢 I/O 耗尽数据库连接池）。
 - **并发计数与幂等更新**：点赞、收藏、评论数与评分汇总（`rating_sum`、`rating_count`、`rating_avg`）先靠唯一索引防重（捕获唯一约束冲突幂等处理或返回明确状态），再在同事务内使用 SQL 原子增减（`SET like_count = like_count + 1`），禁止“Java 读出旧数字 + 1 后整行覆盖写回”导致并发丢数。
 

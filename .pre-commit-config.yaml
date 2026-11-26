@@ -1,0 +1,43 @@
+minimum_pre_commit_version: "3.2.0"
+fail_fast: false
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+        # 保留上游 Maven Wrapper 生成脚本与 Windows CRLF 行尾，避免误改写。
+        exclude: ^backend/(mvnw|mvnw\.cmd)$
+      - id: end-of-file-fixer
+        # 保留上游 Maven Wrapper 生成脚本与 Windows CRLF 行尾，避免误改写。
+        exclude: ^backend/(mvnw|mvnw\.cmd)$
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: check-case-conflict
+      - id: check-added-large-files
+      - id: detect-private-key
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        # 排除锁文件完整性摘要与上游 Maven Wrapper 生成脚本，避免哈希值高熵误报。
+        exclude: ^(backend/(mvnw|mvnw\.cmd)|skills-lock\.json)$
+
+  - repo: local
+    hooks:
+      - id: landfall-check-docs
+        name: check markdown links and doc pointers
+        language: system
+        entry: make check-docs
+        files: (\.md$|^scripts/check-docs\.py$)
+        pass_filenames: false
+
+      - id: landfall-backend-style-check
+        name: backend spotless and checkstyle check
+        language: system
+        entry: make backend-style-check
+        files: ^backend/(src/.*\.java|config/checkstyle/checkstyle\.xml|pom\.xml)$
+        pass_filenames: false
+        require_serial: true

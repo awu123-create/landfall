@@ -35,7 +35,7 @@
 | :--- | :--- | :--- |
 | **双前端与设计系统** | Vue 3 + TypeScript + Vite + Vue Router + Tailwind CSS v4 + `shadcn-vue`（`reka-ui`）；用户端配 `hls.js`；管理端配 `@tanstack/vue-table` + ECharts；`frontend/` `pnpm workspace` | 双端统一一套 Tailwind v4 + `shadcn-vue` 技术栈，无业务语义的 UI 原语沉淀在共享包 `@landfall/ui`（`frontend/packages/ui`），省去同时维护两套组件库的心智负担 |
 | **前端状态管理** | `@tanstack/vue-query`（服务端状态）+ Pinia Setup Store（纯客户端状态） | 服务端缓存、加载态与写后联动刷新统一归 `@tanstack/vue-query`（各业务特性自持层级 Query Key）；Pinia 仅存登录态与纯客户端 UI 状态 |
-| **后端与模块边界** | Java 17 + Spring Boot 3.x + MyBatis-Plus（仅 `BaseMapper`）+ Flyway + PostgreSQL 16 + Redis 7 + ArchUnit | 按 Spring Modulith 范式组织业务模块（模块根包暴露跨模块公开 API 与 `record` DTO，`.internal` 收敛私有实现，ArchUnit 单测守住边界）；全表主键统一使用原生 `UUID`（**UUIDv7**），时间列统一 `TIMESTAMPTZ` |
+| **后端与模块边界** | Java 21 + Spring Boot 3.x + MyBatis-Plus（仅 `BaseMapper`）+ Flyway + PostgreSQL 16 + Redis 7 + ArchUnit | 按 Spring Modulith 范式组织业务模块（模块根包暴露跨模块公开 API 与 `record` DTO，`.internal` 收敛私有实现，ArchUnit 单测守住边界）；全表主键统一使用原生 `UUID`（**UUIDv7**），时间列统一 `TIMESTAMPTZ` |
 | **认证与权限底座** | Spring Security 6 + Redis 不透明 Token + 5 表树形 RBAC | 单后端每次请求均需校验封禁与动态权限，采用不透明 Token 原生支持滑动续期与删 key 毫秒级全端踢下线，省去前端并发 401 刷新锁复杂度 |
 | **接口契约流水线** | SpringDoc OpenAPI 3 + Knife4j + `frontend/packages/shared/openapi.json` + Orval | 后端显式返回 `ApiResponse<T>` 并导出 `openapi.json`，在 `frontend/` 下运行 `pnpm api:generate` 生成纯请求函数与 TS 类型一并提交入库（`.gitattributes` 折叠 PR diff，遇冲突重跑 `pnpm api:generate` 覆盖，CI `git diff --exit-code` 防漏同步） |
 | **存储与外部依赖** | `StorageAdapter`（LocalDisk / S3）+ FFmpeg 外部进程 + OpenAI 兼容接口 | 本机默认连 Docker PG（库名/账号 `landfall`，密码 `landfall123`）+ Redis + 本地磁盘；无 FFmpeg 或未配大模型密钥时自动降级，核心链路零阻塞 |
