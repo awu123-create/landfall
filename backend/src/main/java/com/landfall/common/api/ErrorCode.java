@@ -29,7 +29,11 @@ public enum ErrorCode {
     FILE_EMPTY(30101, HttpStatus.BAD_REQUEST, "上传的文件不能为空"),
     FILE_TOO_LARGE(30102, HttpStatus.BAD_REQUEST, "文件大小超出限制"),
     INVALID_FILE_EXTENSION(30103, HttpStatus.BAD_REQUEST, "不支持的文件扩展名"),
-    INVALID_FILE_HEADER(30104, HttpStatus.BAD_REQUEST, "文件内容与扩展名不符（魔数校验失败）");
+    INVALID_FILE_HEADER(30104, HttpStatus.BAD_REQUEST, "文件内容与扩展名不符（魔数校验失败）"),
+
+    // 包 5 社交与关注 (500xx)
+    CANNOT_FOLLOW_SELF(50001, HttpStatus.BAD_REQUEST, "不能关注自己"),
+    USER_NOT_FOUND(50002, HttpStatus.NOT_FOUND, "目标用户不存在");
 
     private final int code;
     private final HttpStatus httpStatus;
