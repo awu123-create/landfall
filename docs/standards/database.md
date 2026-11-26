@@ -27,8 +27,8 @@
 ## Flyway 迁移纪律（Migrations）
 
 - **DDL 唯一入口**：一切建表、改列、索引、约束与基础角色/权限种子数据均通过 `backend/src/main/resources/db/migration/` 下的 Flyway 脚本管理；**严禁开启任何 ORM 自动建表或自动改表配置**。
-- **时间戳命名规范**：统一命名为 `VYYYYMMDD_NN__<module>_<description>.sql`（如 `V20261126_01__auth_init_rbac.sql`），采用正向演进（Forward-only），不编写 Flyway `U` 回滚脚本。
+- **递增序号命名规范**：统一命名为 `V001__<module>_<description>.sql`（三位递增序号，如 `V001__auth_init_rbac.sql`），采用正向演进（Forward-only），不编写 Flyway `U` 回滚脚本。
 - **已合入脚本铁律不可改**：任何已合入 `dev` 的历史 SQL 脚本**严禁修改哪怕一个空格或注释**（否则直接击穿全组本地库与云端库的 Flyway checksum 校验）。对已合入表结构的调整一律新建更高版本号的 `V...sql` 增量脚本。
-- **拉齐 `dev` 排序检查**：个人分支 `rebase origin/dev` 后，须确认本分支新增脚本的版本号严格晚于 `origin/dev` 上最新迁移版本；若发生同日同序号撞号，保留 `dev` 已有文件不动，用 `git mv` 顺延本分支尚未合入的新脚本序号并重跑真库迁移测试。
+- **拉齐 `dev` 排序检查**：个人分支 `rebase origin/dev` 后，须确认本分支新增脚本的版本号严格晚于 `origin/dev` 上最新迁移版本；若发生序号撞号，保留 `dev` 已有文件不动，用 `git mv` 顺延本分支尚未合入的新脚本序号并重跑真库迁移测试。
 
 **Judgement.** 同一尚未合入 `dev` 的 PR 内，若本分支新增的迁移脚本存在疏漏，直接原地修改该未合入脚本，不在同一 PR 内叠加第二个补丁迁移文件。

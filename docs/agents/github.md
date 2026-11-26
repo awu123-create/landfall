@@ -51,7 +51,7 @@ git push --force-with-lease
    - 新增或修改 Markdown 文档时，相对路径链接全部有效；术语与既有 `GLOSSARY.md` / `docs/adr/`（若已存在）无静默冲突。
 2. **后端与数据库迁移检查**（当仓库已落盘 `backend/` 且改动涉及后端或 SQL 时）
    - 在 `backend/` 下通过 Maven 编译与测试（如 `./mvnw test`）；
-   - 严禁修改任何已合入 `dev` 的历史 Flyway 迁移脚本；同分支拉齐 `dev` 若发生迁移时间戳/序号冲突，仅顺延当前未合入分支的新增脚本并重跑迁移验证。
+   - 严禁修改任何已合入 `dev` 的历史 Flyway 迁移脚本；同分支拉齐 `dev` 若发生迁移序号冲突，仅顺延当前未合入分支的新增脚本并重跑迁移验证。
 3. **前端与契约同步检查**（当仓库已落盘 `frontend/pnpm-workspace.yaml` 且改动涉及前端或 REST 契约时）
    - 变更后端接口契约（或拉齐 `dev` 带入契约更新）后，同步导出 `frontend/packages/shared/openapi.json` 并在 `frontend/` 下运行 `pnpm api:generate` 将 `frontend/packages/shared/src/api/generated/` 一并提交入库；遇 `generated/` 冲突严禁手解，直接重跑 `pnpm api:generate` 覆盖并确认 `git diff --exit-code` 为空；
    - 在 `frontend/` 下通过工作区类型检查与构建（如 `pnpm typecheck` / `pnpm build`）。

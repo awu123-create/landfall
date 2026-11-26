@@ -34,6 +34,13 @@ repos:
         files: (\.md$|^scripts/check-docs\.py$)
         pass_filenames: false
 
+      - id: landfall-check-migrations
+        name: check Flyway migration naming and immutability
+        language: system
+        entry: make check-migrations
+        always_run: true
+        pass_filenames: false
+
       - id: landfall-backend-style-check
         name: backend spotless and checkstyle check
         language: system
