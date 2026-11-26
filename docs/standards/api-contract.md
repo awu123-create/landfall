@@ -63,3 +63,52 @@ HTTP 状态码表达传输与认证语义，业务分支判断**仅依赖 `Error
 1. **契约与生成代码一并提交入库（严禁手改）**：后端新增或修改 Controller 路由、参数、DTO 字段或枚举时，在同一提交中导出更新 `frontend/packages/shared/openapi.json`，并在 `frontend/` 下运行 `pnpm api:generate`（Orval 按 `@Tag` 拆分，仅生成纯请求函数与 TypeScript 类型，排除二进制媒体流端点）将 `frontend/packages/shared/src/api/generated/` 一并提交入库。GitHub 上看代码可直接追踪生成的函数与类型签名；根目录 `.gitattributes` 通过 `frontend/packages/shared/src/api/generated/** linguist-generated=true` 自动折叠 PR 中的生成文件 Diff 噪音。
 2. **合并冲突零手解规矩**：拉齐 `origin/dev` 时只要 `frontend/packages/shared/src/api/generated/` 出现冲突（或双边均修改过接口契约），**永远不手解 `generated/` 冲突**，对齐 `openapi.json` 后直接在 `frontend/` 下重跑一行 `pnpm api:generate` 全量覆盖。
 3. **CI 防漏同步与类型门禁**：CI 流水线依次执行导出 OpenAPI → `pnpm --dir frontend api:generate` → `git diff --exit-code`（忘记重新生成提交直接红灯阻断），并在 `frontend/` 下运行全工作区 `vue-tsc --noEmit` 确保双端调用点零类型错误。
+
+## 作品读接口（Post read endpoints · 包 3）
+
+> **状态**：`Proposed`。本节的决策背景与取舍见 [ADR 0001](../adr/0001-post-read-query-contract.md)；实现切片 #24 / #25 合入 `dev` 时，本节随 ADR 一并转为现行契约。
+
+### 端点
+
+| 端点 | 鉴权 | 用途 | 成功响应 |
+| :--- | :--- | :--- | :--- |
+| `GET /api/v1/public/posts` | 游客放行（携带有效 Token 时注入用户上下文） | 发现流 | `ApiResponse<PageResult<PostSummaryResp>>` |
+| `GET /api/v1/public/posts/{postId}` | 同上 | 作品详情聚合 | `ApiResponse<PostDetailResp>` |
+| `GET /api/v1/public/posts/search` | 同上 | 多维检索 | `ApiResponse<PageResult<PostSummaryResp>>` |
+| `GET /api/v1/posts/mine` | 需登录 | 我的作品 | `ApiResponse<PageResult<MyPostSummaryResp>>` |
+
+### 查询参数
+
+`PostFeedQueryReq`（发现流）：`page`、`pageSize`、`sort`（`LATEST` / `HOT` / `TOP_RATED` / `RECOMMEND`，缺省 `LATEST`）。
+
+`PostSearchQueryReq`（检索）：上述三项，外加
+
+| 参数 | 类型 | 含义 |
+| :--- | :--- | :--- |
+| `keyword` | `string` | 匹配 `title` 与 `content`，`ILIKE` 大小写不敏感 |
+| `tagIds` | `UUID` 可重复参数 | 多标签为 **AND** 语义 |
+| `from` / `to` | `YYYY-MM-DD` | 发布日期区间，按 `Asia/Shanghai` 折算为左闭右开 |
+| `contentType` | `TEXT` / `IMAGE` / `VIDEO` | 内容形态过滤 |
+
+检索要求上述过滤条件**至少一项非空**；全部为空时返回 `400` / `10400`，禁止无参全表导出。
+
+### 响应字段
+
+`PostSummaryResp`：`postId`(`UUID`)、`title`、`coverUrl`(可空)、`contentType`、`author{ userId, nickname, avatarUrl }`、`tags[{ tagId, name }]`、`stats{ likeCount, collectCount, commentCount, ratingCount, ratingAvg }`、`createdAt`(ISO-8601)。
+
+`PostDetailResp`：`PostSummaryResp` 全部字段，外加 `content`、`media[{ assetId, mediaType, rawUrl, coverUrl, playMode, width, height, durationSeconds }]`、`rating{ avg, count }`、`currentUser`、`degraded`(布尔)。
+
+- `currentUser` 在游客访问时为 `null`；已登录时为 `{ liked, collected, followingAuthor, myRating }`。其中互动与关注字段的来源是包 4 的批量互动状态查询（#21）与包 5，未接入前该对象内对应字段返回 `null`，而非编造默认值。
+- `degraded` 仅在 `sort=RECOMMEND` 且包 7 排序服务不可用时为 `true`，此时结果按 `LATEST` 返回。
+
+`MyPostSummaryResp`：`PostSummaryResp` 全部字段，外加 `visibility` 与 `status`，使作者能区分自己作品是公开、仅好友、仅自己，以及是否已被下架。
+
+### 语义约定
+
+- **可见性**：所有列表过滤与详情判定统一调用 `PostAccessPolicy`，且列表 SQL 条件须与 `canView` 同口径，杜绝「列表看得到、点进去 403」。
+- **不存在与无权查看同响应**：详情对私密作品、他人仅好友作品、已下架作品与真实不存在的 ID 一律返回 `404` / `30001`，避免借响应差异探测作品存在性。
+- **时间**：查询参数按 `Asia/Shanghai` 解释并折算为左闭右开 `[from 00:00:00, to + 1d 00:00:00)`，在查询层完成，不依赖数据库会话时区。
+- **分页**：`page` 从 `1` 起算；`pageSize` 缺省 `defaultSize`、超过 `maxSize` 时钳位并在 `PageResult.pageSize` 回传；`page < 1` 或 `pageSize < 1` 返回 `400` / `10400`。
+- **排序稳定性**：每个档位都必须带 tie-breaker（`created_at DESC, post_id DESC`），否则同秒创建的作品在翻页边界会重复或漏条。
+- **`TOP_RATED` 门槛与降级**：默认要求 `rating_count >= 3`；全站无满足者时降级为「有评分即可」，降级在一次查询内完成，不返回空列表。
+- **错误码**：复用 `30001`（作品不存在或无权查看）与 `10400`（参数校验失败）；标签数量或长度限制如需新增错误码，登记在 `302xx` 子域，且同一 PR 必须有真实抛出方。
