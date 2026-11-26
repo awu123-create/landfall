@@ -10,7 +10,7 @@ else
 	PYTHON := python3
 endif
 
-.PHONY: help setup-hooks up down backend-run backend-fmt backend-style-check backend-test backend-verify check-docs check
+.PHONY: help setup-hooks up down backend-run backend-fmt backend-style-check backend-test backend-verify backend-it check-docs check-migrations check
 
 help:
 	@echo "Landfall common commands:"
@@ -19,10 +19,12 @@ help:
 	@echo "  make backend-run         Start Spring Boot backend locally"
 	@echo "  make backend-fmt         Apply Spotless Java formatting"
 	@echo "  make backend-style-check Run Spotless check + Checkstyle in one JVM"
-	@echo "  make backend-test        Run backend unit & ArchUnit tests"
-	@echo "  make backend-verify      Full backend gate (test, package, spotless, checkstyle)"
+	@echo "  make backend-test        Run container-free unit, WebMvc & ArchUnit tests"
+	@echo "  make backend-verify      Full fast backend gate (unit test, package, spotless, checkstyle)"
+	@echo "  make backend-it          Run real PostgreSQL 16 + Redis 7 integration tests (*IT)"
 	@echo "  make check-docs          Verify Markdown links and doc path pointers"
-	@echo "  make check               Run check-docs + backend-verify"
+	@echo "  make check-migrations    Verify Flyway naming and block baseline migration edits"
+	@echo "  make check               Run check-docs + check-migrations + backend-verify"
 
 setup-hooks:
 	pre-commit install --install-hooks
@@ -48,7 +50,13 @@ backend-test:
 backend-verify:
 	cd backend && $(MVNW) -B verify
 
+backend-it:
+	cd backend && $(MVNW) -B test-compile failsafe:integration-test failsafe:verify
+
 check-docs:
 	$(PYTHON) scripts/check-docs.py
 
-check: check-docs backend-verify
+check-migrations:
+	$(PYTHON) scripts/check-migrations.py
+
+check: check-docs check-migrations backend-verify

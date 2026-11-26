@@ -36,7 +36,7 @@
 | **双前端与设计系统** | Vue 3 + TypeScript + Vite + Vue Router + Tailwind CSS v4 + `shadcn-vue`（`reka-ui`）；用户端配 `hls.js`；管理端配 `@tanstack/vue-table` + ECharts；`frontend/` `pnpm workspace` | 双端统一一套 Tailwind v4 + `shadcn-vue` 技术栈，无业务语义的 UI 原语沉淀在共享包 `@landfall/ui`（`frontend/packages/ui`），省去同时维护两套组件库的心智负担 |
 | **前端状态管理** | `@tanstack/vue-query`（服务端状态）+ Pinia Setup Store（纯客户端状态） | 服务端缓存、加载态与写后联动刷新统一归 `@tanstack/vue-query`（各业务特性自持层级 Query Key）；Pinia 仅存登录态与纯客户端 UI 状态 |
 | **后端与模块边界** | Java 21 + Spring Boot 3.x + MyBatis-Plus（仅 `BaseMapper`）+ Flyway + PostgreSQL 16 + Redis 7 + ArchUnit | 按 Spring Modulith 范式组织业务模块（模块根包暴露跨模块公开 API 与 `record` DTO，`.internal` 收敛私有实现，ArchUnit 单测守住边界）；全表主键统一使用原生 `UUID`（**UUIDv7**），时间列统一 `TIMESTAMPTZ` |
-| **认证与权限底座** | Spring Security 6 + Redis 不透明 Token + 5 表树形 RBAC | 单后端每次请求均需校验封禁与动态权限，采用不透明 Token 原生支持滑动续期与删 key 毫秒级全端踢下线，省去前端并发 401 刷新锁复杂度 |
+| **认证与权限底座** | Sa-Token + Redis 不透明 Token + 5 表树形 RBAC（密码哈希单独复用 `spring-security-crypto`） | 单后端每次请求均需校验封禁与动态权限，Sa-Token 原生支持不透明 Token 滑动续期、多端踢下线与 MVC 统一异常收敛，省去手搓 Redis 令牌集合同步与重量级过滤器链样板 |
 | **接口契约流水线** | SpringDoc OpenAPI 3 + Knife4j + `frontend/packages/shared/openapi.json` + Orval | 后端显式返回 `ApiResponse<T>` 并导出 `openapi.json`，在 `frontend/` 下运行 `pnpm api:generate` 生成纯请求函数与 TS 类型一并提交入库（`.gitattributes` 折叠 PR diff，遇冲突重跑 `pnpm api:generate` 覆盖，CI `git diff --exit-code` 防漏同步） |
 | **存储与外部依赖** | `StorageAdapter`（LocalDisk / S3）+ FFmpeg 外部进程 + OpenAI 兼容接口 | 本机默认连 Docker PG（库名/账号 `landfall`，密码 `landfall123`）+ Redis + 本地磁盘；无 FFmpeg 或未配大模型密钥时自动降级，核心链路零阻塞 |
 
@@ -59,7 +59,7 @@
 
 ### 3.3 会话、双层权限与软删除级联
 
-- **不透明 Token 与公开页静默降级**：Redis 维护 Token 详情与用户在线 Token 集合；修改密码、重置密码、封禁、软删账号时清空集合实现全端下线。Spring Security 逐条显式列出公开只读白名单（禁止按 HTTP `GET` 粗暴放行）：命中公开接口时，有效 Token 注入用户上下文，**过期或已失效的残留 Token 静默忽略并按游客放行**，绝不在公开页弹 `401`。需登录接口区分未带 Token（`401` / `20001`）与失效 Token（`401` / `20006`）。
+- **不透明 Token 与公开页静默降级**：基于 Sa-Token + Redis 维护 Token 详情与用户在线令牌会话；修改密码、重置密码、封禁、软删账号时全端即时踢下线。`SaInterceptor` 逐条显式列出公开只读白名单（禁止按 HTTP `GET` 粗暴放行）：命中公开接口时，有效 Token 注入用户上下文，**过期、失效或格式异常的残留 Token 静默忽略并按游客放行**，绝不在公开页弹 `401`。需登录接口区分未带 Token（`401` / `20001`）与失效 Token（`401` / `20006`）。
 - **功能级 RBAC 与后台准入**：5 表树形权限模型预置 `ROLE_USER`、`ROLE_MODERATOR`、`ROLE_ADMIN`（内置角色防删 `70001`）；后台登录与全部 `/api/v1/admin/**` 强制校验 `admin:access`（无权限返 `403` / `20007`）；角色或权限树变更时同步清除关联用户的 Redis 权限缓存。
 - **数据级策略（`PostAccessPolicy` / `CommentAccessPolicy`）**：所有业务模块统一调用策略类，禁止散落手写越权判断。**6 类必检 `canView` 入口**：① 作品详情；② 评论与子回复列表；③ 点赞/收藏/评分/发评写接口；④ 我的收藏列表（对事后转私密或下架作品做过滤或占位提示）；⑤ 发现流/关注流/搜索/个人主页列表（SQL 与 `canView` 同口径）；⑥ 详情页 AI 总结生成与读取。
 - **用户软删除**：写入 `deleted_at` 并踢下线，同步将其作品与评论置为 `DELETED`、异步回算受影响作品互动计数与均分；用户名与邮箱采用部分唯一索引（`WHERE deleted_at IS NULL`）支持重注册。
@@ -111,7 +111,7 @@
 ### 4.3 并行协作 5 条防冲突硬规则
 
 1. **前端薄 `views/` + `features/<domain>/index.ts` 物理隔离**：各工作包在所属 `features/<domain>/` 内开发组件、Query Key 与局部逻辑，只经 `index.ts` 向外暴露公开组件；`views/` 只做百行内的布局与组装，禁止多人混改大组件或跨特性深层导入私有文件。
-2. **Flyway 迁移只增不改、日常开发隔离共享库**：日常开发默认连本机 Docker；表结构变更一律新增时间戳迁移脚本，**严禁修改任何已合入 `dev` 的历史 SQL 脚本**。
+2. **Flyway 迁移只增不改、日常开发隔离共享库**：日常开发默认连本机 Docker；表结构变更一律新增三位递增序号迁移脚本（`V001__<module>_<description>.sql`），**严禁修改任何已合入 `dev` 的历史 SQL 脚本**。
 3. **生成代码入库折叠、冲突重跑覆盖与 CI 防漂移**：`frontend/packages/shared/openapi.json` 与 `frontend/packages/shared/src/api/generated/` 一并提交入库（GitHub 看代码上下文完整，`.gitattributes` `linguist-generated=true` 自动折叠 PR diff）；只要 `generated/` 冲突，**永远不手解冲突**，直接在 `frontend/` 下重跑 `pnpm api:generate` 覆盖；CI 执行导出 OpenAPI → `pnpm --dir frontend api:generate` → `git diff --exit-code` 阻断漏同步。
 4. **分支规范与密钥隔离**：开发分支统一从 `origin/dev` 按 `<type>/<id>-<slug>` 切出并通过 Squash merge 合入 `dev`（详见 [docs/agents/github.md](../agents/github.md)）；API Key、云端数据库密码与上传物理路径统一走环境变量与 `.env`，严禁入库。
 5. **外部依赖可降级**：无 FFmpeg 自动走 HTTP `Range` 播放，无大模型密钥或超时自动提示降级并将待审内容转 `MANUAL_REVIEW`，保障核心社区功能离线可跑通。

@@ -38,7 +38,7 @@ com.landfall.module.post/                # 模块公开边界（其他模块唯�
 
 ## 双层权限把守（Security and access policy）
 
-- **第一层（功能级）**：公开接口显式列于安全白名单（携带失效 `OpaqueToken` 静默清除上下文按游客放行，绝不抛 `401`）；后台接口统一校验 `admin:access` 与 `@PreAuthorize("hasAuthority('...')")`。
+- **第一层（功能级）**：基于 Sa-Token 构建路由拦截器（`SaInterceptor`）与方法级权限校验（密码哈希单独复用轻量 `spring-security-crypto`）；公开接口显式列于安全白名单（携带失效或异常 `OpaqueToken` 静默清除上下文按游客放行，绝不抛 `401`）；后台接口统一校验 `admin:access` 与 `@SaCheckPermission("...")`，鉴权异常统一汇入 `GlobalExceptionHandler`。
 - **第二层（数据级 `AccessPolicy`）**：涉及 `Post` 与 `Comment` 可见性、归属权判断时，所有模块必须调用集中策略类 `PostAccessPolicy` / `CommentAccessPolicy`（覆盖详情、评论列表、互动写入、收藏夹、信息流 SQL 口径、AI 总结 6 类入口），禁止在业务代码里各自手写 `if (!post.getAuthorId().equals(userId))`。下架处置只改 `status = TAKEDOWN`，严禁触碰 `visibility`。
 
 ## 异常处理与日志追踪（Errors and logging）

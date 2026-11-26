@@ -6,14 +6,14 @@
 
 ```text
 landfall/
-├── backend/                 # Java 21 + Spring Boot 3.4.5 后端（内置 Maven Wrapper）
+├── backend/                 # Java 21 + Spring Boot 3.4.5 后端（内置 Maven Wrapper、Flyway 迁移、MyBatis-Plus）
 ├── docs/                    # ARCHITECTURE.md、standards/、agents/、specs/
-├── scripts/                 # 仓库校验脚本（check-docs.py）
+├── scripts/                 # 仓库校验脚本（check-docs.py、check-migrations.py）
 ├── docker-compose.yml       # 本地 PostgreSQL 16 + Redis 7（含健康检查）
 ├── .env.example             # 本地环境变量模板
 ├── Makefile                 # 本地与 CI 复用的统一任务入口
-├── .pre-commit-config.yaml  # 提交前门禁（detect-secrets、格式、Checkstyle、文档校验）
-└── .github/workflows/ci.yml # GitHub Actions: Lint, Test & Build
+├── .pre-commit-config.yaml  # 提交前门禁（detect-secrets、格式、Checkstyle、文档与迁移防篡改校验）
+└── .github/workflows/ci.yml # GitHub Actions: 快速检查 + 真实 PG 16 / Redis 7 集成测试
 ```
 
 ## 环境要求
@@ -38,10 +38,12 @@ make backend-run      # 启动后端服务（默认端口 8080，可通过 SERVE
 ## 常用校验命令
 
 ```bash
-make check               # 文档链接指针校验 + 后端全量 verify（单测、ArchUnit、打包、Spotless、Checkstyle）
+make check               # 文档校验 + Flyway 迁移防篡改 + 后端免容器全量 verify（单测、ArchUnit、打包、Spotless、Checkstyle）
+make check-migrations    # 单独执行 Flyway 命名与历史迁移防篡改检查
+make backend-it          # 连接本地 Docker PostgreSQL 16 + Redis 7 跑真库集成测试（动态临时库 + Redis DB 15，不污染 landfall 库）
 make backend-fmt         # 自动执行 Spotless Java 格式化
 make backend-style-check # 仅执行 Spotless 检查 + Checkstyle 静态检查
-make backend-verify      # 仅运行后端全量 verify
+make backend-verify      # 仅运行后端免容器全量 verify
 make down                # 停止本地 Docker 容器
 pre-commit run --all-files
 ```

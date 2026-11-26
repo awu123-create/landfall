@@ -26,8 +26,7 @@ import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.system.CapturedOutput;
 import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.springframework.context.annotation.Import;
@@ -41,8 +40,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-@SpringBootTest
-@AutoConfigureMockMvc
+@WebMvcTest(controllers = {PublicHealthController.class, PublicHealthAndExceptionContractTest.ProbeController.class})
 @Import(PublicHealthAndExceptionContractTest.ProbeController.class)
 @ExtendWith(OutputCaptureExtension.class)
 class PublicHealthAndExceptionContractTest {
