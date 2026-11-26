@@ -3,10 +3,6 @@ package com.landfall.storage;
 import com.landfall.common.api.BusinessException;
 import com.landfall.common.api.ErrorCode;
 import com.landfall.common.id.UuidV7Generator;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
-import org.springframework.web.multipart.MultipartFile;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
@@ -14,6 +10,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Locale;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
 @Component
 public class LocalDiskStorageAdapter implements StorageAdapter {
@@ -59,10 +58,10 @@ public class LocalDiskStorageAdapter implements StorageAdapter {
         String assetId = UuidV7Generator.generate().toString();
         String finalFileName = assetId + "." + extension;
         Path targetDir = this.rootLocation.resolve(folder).normalize();
-        
+
         // 安全检查：防止路径穿越攻击
         if (!targetDir.startsWith(this.rootLocation)) {
-             throw new BusinessException(ErrorCode.BAD_REQUEST, "非法路径");
+            throw new BusinessException(ErrorCode.BAD_REQUEST, "非法路径");
         }
 
         Path targetFile = targetDir.resolve(finalFileName);
@@ -75,7 +74,7 @@ public class LocalDiskStorageAdapter implements StorageAdapter {
         }
 
         // 6. 返回结果
-        String url = "/" + folder + "/" + finalFileName; 
+        String url = "/" + folder + "/" + finalFileName;
         return new StorageResponse(assetId, url, file.getContentType(), file.getSize());
     }
 
@@ -96,12 +95,20 @@ public class LocalDiskStorageAdapter implements StorageAdapter {
             }
 
             return switch (extension) {
-                // JPG 开头是 FF D8 FF
-                case "jpg", "jpeg" -> (header[0] == (byte) 0xFF && header[1] == (byte) 0xD8 && header[2] == (byte) 0xFF);
-                // PNG 开头是 89 50 4E 47
-                case "png" -> (header[0] == (byte) 0x89 && header[1] == (byte) 0x50 && header[2] == (byte) 0x4E && header[3] == (byte) 0x47);
-                // MP4 第 5-8 个字节是 'f' 't' 'y' 'p' (66 74 79 70)
-                case "mp4" -> (header[4] == (byte) 0x66 && header[5] == (byte) 0x74 && header[6] == (byte) 0x79 && header[7] == (byte) 0x70);
+                    // JPG 开头是 FF D8 FF
+                case "jpg", "jpeg" -> (header[0] == (byte) 0xFF
+                        && header[1] == (byte) 0xD8
+                        && header[2] == (byte) 0xFF);
+                    // PNG 开头是 89 50 4E 47
+                case "png" -> (header[0] == (byte) 0x89
+                        && header[1] == (byte) 0x50
+                        && header[2] == (byte) 0x4E
+                        && header[3] == (byte) 0x47);
+                    // MP4 第 5-8 个字节是 'f' 't' 'y' 'p' (66 74 79 70)
+                case "mp4" -> (header[4] == (byte) 0x66
+                        && header[5] == (byte) 0x74
+                        && header[6] == (byte) 0x79
+                        && header[7] == (byte) 0x70);
                 default -> false;
             };
         } catch (IOException e) {

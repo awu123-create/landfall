@@ -14,8 +14,8 @@ public enum ErrorCode {
     METHOD_NOT_ALLOWED(10405, HttpStatus.METHOD_NOT_ALLOWED, "请求方法不支持"),
     INTERNAL_ERROR(10500, HttpStatus.INTERNAL_SERVER_ERROR, "服务器内部错误"),
 
-        // 包 2 媒体上传专用错误码 (301xx)
-        // 包 2 媒体上传专用错误码 (301xx)
+    // 包 2 媒体上传专用错误码 (301xx)
+    // 包 2 媒体上传专用错误码 (301xx)
     FILE_EMPTY(30101, HttpStatus.BAD_REQUEST, "上传的文件不能为空"),
     FILE_TOO_LARGE(30102, HttpStatus.BAD_REQUEST, "文件大小超出限制"),
     INVALID_FILE_EXTENSION(30103, HttpStatus.BAD_REQUEST, "不支持的文件扩展名"),
