@@ -1,5 +1,6 @@
 package com.landfall.common.exception;
 
+import cn.dev33.satoken.exception.NotPermissionException;
 import com.landfall.common.api.ApiResponse;
 import com.landfall.common.api.BusinessException;
 import com.landfall.common.api.ErrorCode;
@@ -31,6 +32,11 @@ public class GlobalExceptionHandler {
             return respond(errorCode);
         }
         return respond(errorCode, ex.getMessage());
+    }
+
+    @ExceptionHandler(NotPermissionException.class)
+    public ResponseEntity<ApiResponse<Void>> handleNotPermission(NotPermissionException ex) {
+        return respond(ErrorCode.FORBIDDEN);
     }
 
     @ExceptionHandler(BindException.class)

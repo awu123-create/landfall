@@ -33,6 +33,7 @@ make backend-run      # 启动后端服务（默认端口 8080，可通过 SERVE
 
 启动后验证：
 - 健康检查：`GET http://localhost:8080/api/v1/public/health`
+- 前台认证接口：`POST /api/v1/auth/register`、`POST /api/v1/auth/login`、`GET /api/v1/auth/me`、`PUT /api/v1/auth/password`、`POST /api/v1/auth/logout`（本地默认幂等初始化超级管理员账号，凭据见 `.env.example` 中的 `BOOTSTRAP_ADMIN_*`，生产环境将 `BOOTSTRAP_ADMIN_ENABLED` 设为 `false`）
 - OpenAPI 3 文档：`GET http://localhost:8080/v3/api-docs` / `http://localhost:8080/swagger-ui.html`
 
 ## 常用校验命令
