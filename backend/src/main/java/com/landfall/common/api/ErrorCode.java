@@ -14,7 +14,17 @@ public enum ErrorCode {
     METHOD_NOT_ALLOWED(10405, HttpStatus.METHOD_NOT_ALLOWED, "请求方法不支持"),
     INTERNAL_ERROR(10500, HttpStatus.INTERNAL_SERVER_ERROR, "服务器内部错误"),
 
-    // 包 2 媒体上传专用错误码 (301xx)
+    UNAUTHORIZED(20001, HttpStatus.UNAUTHORIZED, "请先登录"),
+    FORBIDDEN(20003, HttpStatus.FORBIDDEN, "无权执行该操作"),
+    ACCOUNT_BANNED(20004, HttpStatus.FORBIDDEN, "账号已被封禁"),
+    SESSION_EXPIRED(20006, HttpStatus.UNAUTHORIZED, "登录会话已失效，请重新登录"),
+    ADMIN_ACCESS_DENIED(20007, HttpStatus.FORBIDDEN, "无后台访问权限"),
+
+    USERNAME_ALREADY_EXISTS(20101, HttpStatus.BAD_REQUEST, "用户名已被占用"),
+    EMAIL_ALREADY_EXISTS(20102, HttpStatus.BAD_REQUEST, "邮箱已被注册"),
+    INVALID_CREDENTIALS(20103, HttpStatus.BAD_REQUEST, "账号或密码错误"),
+    INVALID_OLD_PASSWORD(20104, HttpStatus.BAD_REQUEST, "原密码错误"),
+
     // 包 2 媒体上传专用错误码 (301xx)
     FILE_EMPTY(30101, HttpStatus.BAD_REQUEST, "上传的文件不能为空"),
     FILE_TOO_LARGE(30102, HttpStatus.BAD_REQUEST, "文件大小超出限制"),

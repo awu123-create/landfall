@@ -22,6 +22,17 @@ class SysUserEntity {
     private Instant updatedAt;
     private Instant deletedAt;
 
+    static SysUserEntity newUser(String username, String email, String passwordHash, String nickname) {
+        SysUserEntity user = new SysUserEntity();
+        user.username = username;
+        user.email = email;
+        user.passwordHash = passwordHash;
+        user.nickname = nickname;
+        user.bio = "";
+        user.status = UserStatus.NORMAL;
+        return user;
+    }
+
     UUID getId() {
         return id;
     }

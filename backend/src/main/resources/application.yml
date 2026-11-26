@@ -48,3 +48,26 @@ landfall:
   pagination:
     default-size: 20
     max-size: 100
+  auth:
+    permission-cache-ttl: 30m
+    bootstrap-admin:
+      enabled: ${BOOTSTRAP_ADMIN_ENABLED:true}
+      username: ${BOOTSTRAP_ADMIN_USERNAME:admin}
+      email: ${BOOTSTRAP_ADMIN_EMAIL:admin@landfall.local}
+      # detect-secrets Secret Keyword 误报：仅本地开发默认超级管理员初始口令，生产环境关闭 bootstrap-admin 或通过环境变量覆盖。
+      password: ${BOOTSTRAP_ADMIN_PASSWORD:Admin123456} # pragma: allowlist secret
+      nickname: ${BOOTSTRAP_ADMIN_NICKNAME:系统管理员}
+
+sa-token:
+  token-name: Authorization
+  token-prefix: Bearer
+  timeout: 604800
+  active-timeout: -1
+  is-concurrent: true
+  is-share: false
+  is-read-header: true
+  is-read-body: false
+  is-read-cookie: false
+  auto-renew: false
+  is-log: false
+  is-print: false
