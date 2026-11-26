@@ -11,7 +11,7 @@ Landfall 的权威记录清单：
 - [GLOSSARY.md](../../GLOSSARY.md)：统一领域术语、英文代码标识与 `_Avoid_` 禁用同义词；
 - `docs/adr/NNNN-*.md`：记录关键架构与领域设计取舍的 ADR；
 - [README.md](../../README.md)：项目定位、已落地的仓库结构、本地启动与校验命令；
-- `docs/ARCHITECTURE.md`（随包 1 阶段 1 真实工程脚手架同 PR 创建）：反映已落地代码树的模块拓扑、数据流与核心状态机；
+- [docs/ARCHITECTURE.md](../ARCHITECTURE.md)：反映已落地代码树的模块拓扑、数据流与架构边界；
 - [CODING_STANDARDS.md](../../CODING_STANDARDS.md)、`docs/standards/**` 与 `docs/agents/**`：编码、测试、数据库、接口契约与协作规范。
 
 ## 无双规并存
@@ -21,7 +21,7 @@ Landfall 的权威记录清单：
 
 ## 以当前代码树为真相
 
-- 权威记录只描述当前分支磁盘上真实存在的代码结构、表迁移与可执行命令。`README.md` 与未来的 `docs/ARCHITECTURE.md` 不得预先填入尚未创建的目录、路由或脚本；先落盘代码，或在同一 PR 内同步提交代码与文档。
+- 权威记录只描述当前分支磁盘上真实存在的代码结构、表迁移与可执行命令。`README.md` 与 `docs/ARCHITECTURE.md` 不得预先填入尚未创建的目录、路由或脚本；先落盘代码，或在同一 PR 内同步提交代码与文档。
 - 跨工作包总体蓝图、分阶段范围与分工规划放在 `docs/specs/`（如 [docs/specs/design-proposal.md](../specs/design-proposal.md)），仅作为规划上下文，不冒充现行代码树，也不在其中镜像活工单排期或完成状态（见 [docs/agents/issue-tracker.md](../agents/issue-tracker.md)）。
 
 ## 延后落地的架构提案（Proposed ADR）

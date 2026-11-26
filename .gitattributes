@@ -1,2 +1,6 @@
 # Generated outputs: collapsed by default in GitHub PR diffs.
 frontend/packages/shared/src/api/generated/** linguist-generated=true
+
+# Preserve wrapper line endings across macOS/Linux/Windows.
+backend/mvnw text eol=lf
+backend/mvnw.cmd text eol=crlf

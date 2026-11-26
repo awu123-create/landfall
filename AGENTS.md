@@ -1,5 +1,6 @@
 # Landfall（见屿）
 
+- 当前已落盘代码树的模块拓扑、请求/异常/分页链路与门禁：`docs/ARCHITECTURE.md`。
 - 产品范围、架构取舍纲要与 8 人工作包边界（规划上下文，非现行代码树）：`docs/specs/design-proposal.md`。
 - 任何代码改动必读 `CODING_STANDARDS.md`，再按场景读对应规范：
   - Java 后端（`backend/`）：代码与模块边界见 `docs/standards/java/code.md`，单测与真库集成测试见 `docs/standards/java/testing.md`。
