@@ -1,0 +1,486 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PROTOTYPE · 见屿 首页瀑布流与详情页（包 3）</title>
+<!--
+  ⚠️ 这是原型，不是实现代码，不会被合入 dev。
+  它回答两个问题：
+    1. 首页瀑布流用哪种结构？（变体 A / B / C）
+    2. 详情页用哪种分栏？（变体 D1 / D2）
+  切换：底部悬浮条点箭头，或键盘左右方向键，或改 URL 的 #A/#B/#C/#D1/#D2。
+  数据全部是假的，只用于看密度和比例。
+-->
+<style>
+  :root{
+    /* 这些是未来要固化进 frontend/apps/web-user 的 @theme 令牌 */
+    --brand:#e8382b;
+    --brand-soft:#fff1ef;
+    --ink:#16181d;
+    --ink-2:#5c6169;
+    --ink-3:#9aa0aa;
+    --line:#ececef;
+    --bg:#f7f7f8;
+    --surface:#fff;
+    --radius-card:14px;
+    --radius-pill:999px;
+    --shadow-card:0 1px 2px rgba(22,24,29,.06),0 6px 16px rgba(22,24,29,.06);
+    --rail-w:216px;
+    --gap:12px;
+    --font:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,"Segoe UI",sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    font-family:var(--font);background:var(--bg);color:var(--ink);
+    -webkit-font-smoothing:antialiased;
+  }
+  button{font-family:inherit}
+  img{display:block}
+
+  /* ---------- 通用：左导航 ---------- */
+  .shell{display:flex;min-height:100vh}
+  .rail{
+    width:var(--rail-w);flex:0 0 var(--rail-w);
+    padding:18px 14px;position:sticky;top:0;height:100vh;
+    border-right:1px solid var(--line);background:var(--surface);
+    display:flex;flex-direction:column;gap:4px;
+  }
+  .logo{display:flex;align-items:center;gap:9px;padding:6px 10px 18px;font-weight:700;font-size:17px;letter-spacing:.3px}
+  .logo-mark{width:26px;height:26px;border-radius:9px;background:var(--brand);display:grid;place-items:center;color:#fff;font-size:13px;font-weight:800}
+  .nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:var(--ink-2);font-size:14px;cursor:pointer;border:0;background:none;text-align:left;width:100%}
+  .nav-item:hover{background:#f3f3f5;color:var(--ink)}
+  .nav-item.is-active{background:var(--brand-soft);color:var(--brand);font-weight:600}
+  .nav-ico{width:18px;text-align:center;font-size:15px}
+  .rail-foot{margin-top:auto;padding:10px 12px;font-size:12px;color:var(--ink-3);line-height:1.6}
+
+  .main{flex:1;min-width:0;padding:16px 20px 96px}
+  .topbar{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+  .topbar h1{font-size:16px;margin:0;font-weight:650}
+  .tabs{display:flex;gap:6px;margin-left:auto}
+  .tab{border:0;background:none;padding:7px 13px;border-radius:var(--radius-pill);font-size:13px;color:var(--ink-2);cursor:pointer}
+  .tab.is-active{background:var(--ink);color:#fff;font-weight:600}
+
+  /* ---------- 变体 A：等高列瀑布流 ---------- */
+  .masonry{column-gap:var(--gap);column-count:2}
+  .card{
+    break-inside:avoid;margin-bottom:var(--gap);background:var(--surface);
+    border-radius:var(--radius-card);overflow:hidden;cursor:pointer;
+    box-shadow:var(--shadow-card);transition:transform .14s ease,box-shadow .14s ease;
+  }
+  .card:hover{transform:translateY(-2px);box-shadow:0 6px 22px rgba(22,24,29,.12)}
+  .cover{position:relative;background:#e9eaee}
+  .cover .ph{width:100%;height:100%;display:grid;place-items:center;color:#b9bcc4;font-size:12px}
+  .card[data-t="IMAGE"] .cover .ph{background:linear-gradient(135deg,#dfe6ef,#eef1f5)}
+  .card[data-t="VIDEO"] .cover .ph{background:linear-gradient(135deg,#e3e0f0,#f0eef7)}
+  .card[data-t="TEXT"] .cover .ph{background:linear-gradient(135deg,#efe7dd,#f6f2ec)}
+  .play{position:absolute;right:8px;top:8px;width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.55);color:#fff;display:grid;place-items:center;font-size:11px}
+  .card-body{padding:9px 10px 11px}
+  .card-title{font-size:13px;line-height:1.45;margin:0 0 7px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .card-meta{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-3)}
+  .avatar{width:18px;height:18px;border-radius:50%;background:#d7dae0;flex:0 0 18px}
+  .card-meta .name{color:var(--ink-2)}
+  .card-meta .like{margin-left:auto;display:flex;align-items:center;gap:3px}
+  .text-card{padding:14px 13px 12px}
+  .text-card .quote{font-size:14px;line-height:1.6;margin:0 0 12px;font-weight:500}
+
+  /* ---------- 变体 B：杂志编辑式 ---------- */
+  .ed{display:grid;grid-template-columns:repeat(3,1fr);gap:var(--gap);grid-auto-rows:min-content}
+  .ed-hero{grid-column:1 / span 2;grid-row:1 / span 2;position:relative;border-radius:18px;overflow:hidden;background:linear-gradient(135deg,#cdd9e6,#eaeef4);cursor:pointer;min-height:320px}
+  .ed-hero .hero-cap{position:absolute;left:0;right:0;bottom:0;padding:22px;background:linear-gradient(transparent,rgba(10,12,16,.72));color:#fff}
+  .ed-hero h2{margin:0 0 8px;font-size:22px;line-height:1.35;font-weight:700}
+  .ed-hero .hero-meta{display:flex;gap:12px;font-size:12.5px;opacity:.85}
+  .ed-item{background:var(--surface);border-radius:14px;padding:12px;display:flex;gap:11px;cursor:pointer;box-shadow:var(--shadow-card);align-self:start}
+  .ed-thumb{width:74px;height:74px;border-radius:10px;background:#e6e8ec;flex:0 0 74px}
+  .ed-item h3{margin:0 0 6px;font-size:13px;line-height:1.45;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .ed-item .sub{font-size:11.5px;color:var(--ink-3)}
+  .strip{margin-top:18px}
+  .strip-head{display:flex;align-items:baseline;gap:10px;margin-bottom:10px}
+  .strip-head h2{font-size:14px;margin:0}
+  .strip-head span{font-size:12px;color:var(--ink-3)}
+  .strip-row{display:flex;gap:10px;overflow-x:auto;padding-bottom:6px;scrollbar-width:thin}
+  .strip-card{flex:0 0 132px;cursor:pointer}
+  .strip-card .bed{height:170px;border-radius:12px;background:linear-gradient(135deg,#dfe6ef,#eef1f5)}
+  .strip-card p{margin:7px 2px 0;font-size:12px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+  /* ---------- 变体 C：列表 + 预览栏 ---------- */
+  .three{display:grid;grid-template-columns:minmax(300px,1fr) minmax(340px,1.15fr);gap:16px;align-items:start}
+  .listpane{background:var(--surface);border-radius:14px;box-shadow:var(--shadow-card);overflow:hidden}
+  .row{display:flex;gap:12px;padding:12px;border-bottom:1px solid var(--line);cursor:pointer}
+  .row:hover{background:#fafafb}
+  .row.is-on{background:var(--brand-soft)}
+  .row-thumb{width:64px;height:64px;border-radius:9px;flex:0 0 64px;background:#e6e8ec}
+  .row h3{margin:0 0 5px;font-size:13px;line-height:1.4}
+  .row .sub{font-size:11.5px;color:var(--ink-3);display:flex;gap:8px}
+  .preview{position:sticky;top:16px;background:var(--surface);border-radius:14px;box-shadow:var(--shadow-card);padding:18px}
+
+  /* ---------- 详情（D1 / D2）---------- */
+  .detail-wrap{max-width:100%;}
+  .d1{max-width:680px;margin:0 auto;background:var(--surface);border-radius:16px;box-shadow:var(--shadow-card);overflow:hidden}
+  .d2{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(320px,1fr);gap:0;background:var(--surface);border-radius:16px;box-shadow:var(--shadow-card);overflow:hidden}
+  .media-stage{background:#eef0f3;display:grid;place-items:center;color:#b9bcc4;font-size:13px}
+  .d1 .media-stage{height:420px}
+  .d2 .media-stage{height:640px}
+  .detail-info{padding:22px}
+  .d2 .detail-info{border-left:1px solid var(--line);max-height:640px;overflow:auto}
+  .author-row{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+  .author-row .avatar{width:34px;height:34px;flex:0 0 34px}
+  .author-row .who{font-size:13.5px}
+  .author-row .who small{display:block;color:var(--ink-3);font-size:11.5px;margin-top:2px}
+  .btn-follow{margin-left:auto;border:1px solid var(--brand);color:var(--brand);background:none;border-radius:var(--radius-pill);padding:6px 15px;font-size:12.5px;cursor:pointer;font-weight:600}
+  h1.d-title{font-size:20px;line-height:1.4;margin:0 0 10px}
+  .d-content{font-size:14px;line-height:1.75;color:#2a2d33;margin:0 0 14px}
+  .tags{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:16px}
+  .tag{font-size:12px;color:#3d6fb5;background:#eef3fb;border-radius:var(--radius-pill);padding:4px 10px}
+  .stat-row{display:flex;gap:18px;font-size:12.5px;color:var(--ink-3);padding:12px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+  .rating{display:flex;align-items:center;gap:7px;margin:14px 0}
+  .stars{color:#f5a623;letter-spacing:1px}
+  .actions{display:flex;gap:10px;margin-top:16px}
+  .act{border:1px solid var(--line);background:none;border-radius:var(--radius-pill);padding:8px 16px;font-size:13px;cursor:pointer;color:var(--ink-2)}
+  .act.is-on{border-color:var(--brand);color:var(--brand);background:var(--brand-soft)}
+  .comments{margin-top:20px;border-top:1px solid var(--line);padding-top:14px}
+  .comments h4{margin:0 0 10px;font-size:13px}
+  .c-row{display:flex;gap:9px;margin-bottom:12px}
+  .c-row .avatar{width:26px;height:26px;flex:0 0 26px}
+  .c-row p{margin:0;font-size:13px;line-height:1.6;color:#2a2d33}
+  .c-row .c-meta{font-size:11.5px;color:var(--ink-3);margin-top:3px}
+  .owner-actions{display:flex;gap:8px;margin-top:16px}
+  .owner-actions .act{border-color:#e3e5e9}
+
+  /* ---------- 悬浮切换条 ---------- */
+  .switcher{
+    position:fixed;left:50%;bottom:22px;transform:translateX(-50%);
+    display:flex;align-items:center;gap:10px;z-index:99;
+    background:#16181d;color:#fff;border-radius:var(--radius-pill);
+    padding:7px 9px 7px 7px;box-shadow:0 10px 30px rgba(0,0,0,.28);
+    font-size:12.5px;user-select:none;
+  }
+  .switcher button{
+    width:30px;height:30px;border-radius:50%;border:0;background:rgba(255,255,255,.13);
+    color:#fff;font-size:14px;cursor:pointer;display:grid;place-items:center;line-height:1;
+  }
+  .switcher button:hover{background:rgba(255,255,255,.24)}
+  .sw-label{min-width:210px;text-align:center;letter-spacing:.2px}
+  .sw-label b{color:#ffd166}
+  .sw-badge{font-size:11px;color:#9aa0aa;border-left:1px solid rgba(255,255,255,.18);padding-left:10px;margin-left:2px;white-space:nowrap}
+  .sw-close{border:0;background:none;color:#9aa0aa;font-size:16px;cursor:pointer;padding:0 4px}
+
+  /* ---------- 主题/断点说明卡 ---------- */
+  .spec{margin-top:22px;border:1px dashed #d6d8dd;border-radius:12px;padding:14px 16px;font-size:12.5px;color:var(--ink-2);background:#fcfcfd}
+  .spec h4{margin:0 0 8px;font-size:12.5px;color:var(--ink)}
+  .spec code{background:#eef0f3;border-radius:4px;padding:1px 5px;font-size:11.5px}
+  .spec ul{margin:6px 0 0;padding-left:18px;line-height:1.8}
+
+  /* ---------- 响应式断点 ---------- */
+  @media (max-width:1439px){
+    .masonry{column-count:4}
+    .ed{grid-template-columns:repeat(3,1fr)}
+  }
+  @media (max-width:1023px){
+    :root{--rail-w:0px}
+    .rail{display:none}
+    .main{padding:14px 14px 92px}
+    .masonry{column-count:3}
+    .ed{grid-template-columns:repeat(2,1fr)}
+    .ed-hero{grid-column:1 / span 2;grid-row:auto;min-height:240px}
+    .three{grid-template-columns:1fr}
+    .preview{display:none}
+    .d2{grid-template-columns:1fr}
+    .d2 .media-stage{height:380px}
+    .d2 .detail-info{border-left:0;border-top:1px solid var(--line);max-height:none}
+  }
+  @media (max-width:639px){
+    :root{--gap:9px}
+    .masonry{column-count:2}
+    .main{padding:12px 10px 96px}
+    .ed{grid-template-columns:1fr}
+    .ed-hero{grid-column:1}
+    .topbar h1{font-size:15px}
+    .tabs{display:none}
+    .d1{border-radius:0;box-shadow:none}
+    .d1 .media-stage{height:300px}
+    .detail-info{padding:16px}
+    .bottom-nav{
+      display:flex;position:fixed;left:0;right:0;bottom:0;height:56px;
+      background:rgba(255,255,255,.94);backdrop-filter:blur(10px);
+      border-top:1px solid var(--line);z-index:40;
+    }
+    .bottom-nav button{flex:1;border:0;background:none;font-size:11px;color:var(--ink-3);display:flex;flex-direction:column;align-items:center;gap:3px;padding-top:7px;cursor:pointer}
+    .bottom-nav button.is-active{color:var(--brand);font-weight:600}
+    .bottom-nav .ico{font-size:17px}
+    .switcher{bottom:64px}
+  }
+  .bottom-nav{display:none}
+</style>
+</head>
+<body>
+
+<div class="shell">
+  <aside class="rail">
+    <div class="logo"><span class="logo-mark">屿</span>见屿</div>
+    <button class="nav-item is-active"><span class="nav-ico">◈</span>发现</button>
+    <button class="nav-item"><span class="nav-ico">▶</span>关注</button>
+    <button class="nav-item"><span class="nav-ico">✎</span>发布</button>
+    <button class="nav-item"><span class="nav-ico">◔</span>我的作品</button>
+    <div class="rail-foot">原型数据为假<br>仅用于评估布局与密度</div>
+  </aside>
+
+  <main class="main" id="stage"></main>
+</div>
+
+<nav class="bottom-nav" id="bottomNav">
+  <button class="is-active"><span class="ico">◈</span>发现</button>
+  <button><span class="ico">▶</span>关注</button>
+  <button><span class="ico">✎</span>发布</button>
+  <button><span class="ico">◔</span>我的</button>
+</nav>
+
+<div class="switcher" id="switcher">
+  <button id="prev" title="上一个（←）">‹</button>
+  <div class="sw-label" id="swLabel"></div>
+  <div class="sw-badge" id="swBadge"></div>
+  <button id="next" title="下一个（→）">›</button>
+</div>
+
+<script>
+/* ============ 假数据 ============ */
+const AUTHORS = ['阿屿','Momo','南山','小满','林间','Juno','一只鹿','海盐'];
+const TAGS = ['旅行','日常','摄影','美食','手工','阅读','露营','胶片'];
+const POSTS = [
+  {t:'IMAGE', title:'在厦门住到了会呼吸的海景民宿', h:'4/5', likes:1284, type:'民宿'},
+  {t:'TEXT',  title:'关于「慢」的一点想法', body:'最近在练习一件事：把一天里最难的那件事挪到早上第一个做。剩下的时间就都是赚的。', likes:392},
+  {t:'IMAGE', title:'周末做的三件小事：晒被子、磨咖啡、写明信片', h:'3/4', likes:866},
+  {t:'VIDEO', title:'第一次拍星空，失败了 37 次', h:'9/16', likes:2410},
+  {t:'IMAGE', title:'旧书店的下午，翻到一本 1987 年的诗集', h:'1/1', likes:cache(520)},
+  {t:'IMAGE', title:'自制柠檬挞：酥皮翻车但内馅救回来了', h:'4/5', likes:934},
+  {t:'VIDEO', title:'城市边缘的野海滩，没有人', h:'16/9', likes:1573},
+  {t:'TEXT',  title:'猫在窗台晒了一下午，我看了它一下午', body:'它翻身的时候我以为它要醒了，结果只是换了个姿势继续睡。', likes:2108},
+  {t:'IMAGE', title:'徒步 12 公里的碎碎念', h:'3/4', likes:447},
+  {t:'IMAGE', title:'胶片洗出来才发现全废了', h:'4/3', likes:688},
+  {t:'VIDEO', title:'凌晨四点的便利店，只有我和店员', h:'9/16', likes:3120},
+  {t:'IMAGE', title:'阳台改造计划 day 3：终于把架子钉上墙', h:'4/5', likes:1266}
+];
+function cache(n){return n}
+POSTS.forEach((p,i)=>{
+  p.author = AUTHORS[i % AUTHORS.length];
+  p.tag = TAGS[i % TAGS.length];
+  p.rating = (4 + ((i*7)%10)/10).toFixed(1);
+  p.ratingCount = 12 + i*5;
+  p.ago = ['3 分钟前','1 小时前','昨天','2 天前'][i%4];
+});
+
+/* ============ 组件片段 ============ */
+const el = (html) => { const d=document.createElement('div'); d.innerHTML=html.trim(); return d.firstElementChild; };
+const ph = (label, h) => `<div class="ph" style="${h?`aspect-ratio:${h};`:''}">${label}</div>`;
+
+function cardA(p){
+  const media = p.t==='TEXT'
+    ? `<div class="text-card"><p class="quote">${p.body}</p></div>`
+    : `<div class="cover">${ph(p.t==='VIDEO'?'视频封面':p.h+' 图片', p.h)}${p.t==='VIDEO'?'<span class="play">▶</span>':''}</div>`;
+  return el(`<article class="card" data-t="${p.t}">
+    ${media}
+    <div class="card-body">
+      <p class="card-title">${p.title}</p>
+      <div class="card-meta">
+        <span class="avatar"></span><span class="name">${p.author}</span>
+        <span class="like">♥ ${p.likes}</span>
+      </div>
+    </div>
+  </article>`);
+}
+
+function edItem(p){
+  return el(`<div class="ed-item" data-t="${p.t}">
+    <div class="ed-thumb"></div>
+    <div style="min-width:0">
+      <h3>${p.title}</h3>
+      <div class="sub">${p.author} · ♥ ${p.likes}</div>
+    </div>
+  </div>`);
+}
+
+function rowC(p){
+  return el(`<div class="row" data-t="${p.t}">
+    <div class="row-thumb"></div>
+    <div style="min-width:0">
+      <h3>${p.title}</h3>
+      <div class="sub"><span>${p.author}</span><span>♥ ${p.likes}</span><span>${p.ago}</span></div>
+    </div>
+  </div>`);
+}
+
+function detailInfo(p){
+  return `
+    <div class="detail-info">
+      <div class="author-row">
+        <span class="avatar"></span>
+        <div class="who">${p.author}<small>${p.ago} · 杭州</small></div>
+        <button class="btn-follow">关注</button>
+      </div>
+      <h1 class="d-title">${p.title}</h1>
+      <p class="d-content">${p.body || '这里是正文。图文类作品的正文通常比标题长很多，用来评估详情页在长文本下的可读性与信息密度，以及媒体区与文字区的比例关系是否舒服。'}</p>
+      <div class="tags"><span class="tag">#${p.tag}</span><span class="tag">#日常记录</span></div>
+      <div class="stat-row"><span>♥ ${p.likes}</span><span>☆ 收藏</span><span>💬 ${8 + p.ratingCount}</span></div>
+      <div class="rating"><span class="stars">★★★★★</span><b style="font-size:14px">${p.rating}</b><span style="font-size:12px;color:var(--ink-3)">分（${p.ratingCount} 人评）</span></div>
+      <div class="actions">
+        <button class="act">♥ 点赞</button>
+        <button class="act">☆ 收藏</button>
+        <button class="act">💬 评论</button>
+      </div>
+      <div class="owner-actions"><button class="act">编辑</button><button class="act">删除</button></div>
+      <div class="comments">
+        <h4>评论 ${8 + p.ratingCount}</h4>
+        <div class="c-row"><span class="avatar"></span><div><p>第二张的光太好了，是几点拍的？</p><div class="c-meta">Momo · 2 小时前 · ♥ 12</div></div></div>
+        <div class="c-row"><span class="avatar"></span><div><p>求民宿名字！</p><div class="c-meta">小满 · 昨天 · ♥ 31</div></div></div>
+      </div>
+    </div>`;
+}
+
+/* ============ 五个变体 ============ */
+const VARIANTS = {
+  A: {name:'等高列瀑布流', render(){
+    const m = el('<div></div>');
+    const head = el(`<div class="topbar"><h1>发现</h1>
+      <div class="tabs">
+        <button class="tab is-active">推荐</button><button class="tab">最新</button>
+        <button class="tab">最热</button><button class="tab">最高分</button>
+      </div></div>`);
+    const grid = el('<div class="masonry"></div>');
+    POSTS.forEach(p=>grid.appendChild(cardA(p)));
+    m.appendChild(head); m.appendChild(grid); m.appendChild(specCard());
+    return m;
+  }},
+
+  B: {name:'杂志编辑式', render(){
+    const p0 = POSTS[3];
+    const wrap = el(`<div>
+      <div class="topbar"><h1>发现</h1><div class="tabs">
+        <button class="tab is-active">推荐</button><button class="tab">最新</button><button class="tab">最热</button>
+      </div></div>
+      <div class="ed">
+        <div class="ed-hero">
+          <div class="hero-cap">
+            <h2>${p0.title}</h2>
+            <div class="hero-meta"><span>${p0.author}</span><span>♥ ${p0.likes}</span><span>${p0.ago}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>`);
+    const ed = wrap.querySelector('.ed');
+    POSTS.filter((_,i)=>i!==3).slice(0,5).forEach(p=>ed.appendChild(edItem(p)));
+    wrap.appendChild(el(`<div class="strip">
+      <div class="strip-head"><h2>正在流行</h2><span>按标签聚合</span></div>
+      <div class="strip-row">${POSTS.slice(5,11).map(p=>`<div class="strip-card"><div class="bed"></div><p>${p.title}</p></div>`).join('')}</div>
+    </div>`));
+    wrap.appendChild(specCard());
+    return wrap;
+  }},
+
+  C: {name:'列表 + 预览栏', render(){
+    const wrap = el(`<div>
+      <div class="topbar"><h1>发现</h1><span style="font-size:12px;color:var(--ink-3)">左侧选中，右侧即时预览</span></div>
+      <div class="three">
+        <div class="listpane"></div>
+        <div class="preview"></div>
+      </div>
+    </div>`);
+    const pane = wrap.querySelector('.listpane');
+    const prev = wrap.querySelector('.preview');
+    POSTS.slice(0,8).forEach((p,i)=>{
+      const r = rowC(p);
+      if(i===0) r.classList.add('is-on');
+      r.addEventListener('click', ()=>{
+        pane.querySelectorAll('.row').forEach(x=>x.classList.remove('is-on'));
+        r.classList.add('is-on');
+        prev.innerHTML = `<div class="media-stage" style="height:200px;border-radius:10px">媒体预览</div>` + detailInfo(p);
+      });
+      pane.appendChild(r);
+    });
+    prev.innerHTML = `<div class="media-stage" style="height:200px;border-radius:10px">媒体预览</div>` + detailInfo(POSTS[0]);
+    wrap.appendChild(specCard());
+    return wrap;
+  }},
+
+  D1: {name:'详情 · 单栏居中', render(){
+    const p = POSTS[0];
+    const wrap = el(`<div class="detail-wrap">
+      <div class="topbar"><h1>作品详情</h1><span style="font-size:12px;color:var(--ink-3)">/posts/{postId} · 单栏 680px</span></div>
+      <div class="d1">
+        <div class="media-stage" style="height:420px">图 1 / 9　← 左右切换</div>
+        ${detailInfo(p)}
+      </div>
+    </div>`);
+    wrap.appendChild(specCard());
+    return wrap;
+  }},
+
+  D2: {name:'详情 · 左媒体右信息', render(){
+    const p = POSTS[3];
+    const wrap = el(`<div class="detail-wrap">
+      <div class="topbar"><h1>作品详情</h1><span style="font-size:12px;color:var(--ink-3)">/posts/{postId} · 双栏，右栏 sticky</span></div>
+      <div class="d2">
+        <div class="media-stage">视频播放区（HLS）</div>
+        ${detailInfo(p)}
+      </div>
+    </div>`);
+    wrap.appendChild(specCard());
+    return wrap;
+  }}
+};
+
+function specCard(){
+  const w = window.innerWidth;
+  const cols = w<640?2 : w<1024?3 : w<1440?4 : 5;
+  return el(`<div class="spec">
+    <h4>当前实测：视口 ${w}px → 瀑布流 ${cols} 列</h4>
+    <ul>
+      <li><code>&lt;640</code> 双列 + 底部标签栏（隐藏左导航）</li>
+      <li><code>640–1023</code> 三列 + 顶栏</li>
+      <li><code>1024–1439</code> 四列 + 左导航 216px</li>
+      <li><code>≥1440</code> 五列 + 左导航 216px</li>
+      <li>卡片圆角 <code>14px</code>，列间距 <code>12px</code>（窄屏 9px），图片比例按内容形态：图文 <code>4:5 / 3:4 / 1:1</code>，视频封面 <code>9:16</code>，纯文本无封面卡</li>
+    </ul>
+  </div>`);
+}
+
+/* ============ 切换器 ============ */
+const ORDER = ['A','B','C','D1','D2'];
+const stage = document.getElementById('stage');
+const swLabel = document.getElementById('swLabel');
+const swBadge = document.getElementById('swBadge');
+
+function current(){
+  const h = decodeURIComponent(location.hash.replace('#',''));
+  return ORDER.includes(h) ? h : 'A';
+}
+function render(){
+  const v = current();
+  stage.innerHTML = '';
+  stage.appendChild(VARIANTS[v].render());
+  swLabel.innerHTML = `<b>${v}</b> · ${VARIANTS[v].name}`;
+  swBadge.textContent = `${window.innerWidth}px`;
+  location.hash = v;
+}
+function go(delta){
+  const i = ORDER.indexOf(current());
+  const n = ORDER[(i + delta + ORDER.length) % ORDER.length];
+  location.hash = n;
+  render();
+}
+
+document.getElementById('prev').addEventListener('click', ()=>go(-1));
+document.getElementById('next').addEventListener('click', ()=>go(1));
+document.addEventListener('keydown', e=>{
+  const tag = (e.target.tagName || '').toLowerCase();
+  if (tag === 'input' || tag === 'textarea' || e.target.isContentEditable) return;
+  if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+  if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
+});
+window.addEventListener('hashchange', render);
+window.addEventListener('resize', ()=>{ swBadge.textContent = `${window.innerWidth}px`; });
+
+render();
+</script>
+</body>
+</html>
