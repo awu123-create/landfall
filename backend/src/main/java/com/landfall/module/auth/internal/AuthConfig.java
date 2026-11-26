@@ -9,9 +9,12 @@ import com.landfall.common.api.BusinessException;
 import com.landfall.common.api.ErrorCode;
 import com.landfall.module.auth.AuthContext;
 import com.landfall.module.auth.AuthenticatedUser;
+import com.landfall.module.auth.UserDirectory;
+import com.landfall.module.auth.UserSummary;
 import jakarta.annotation.PostConstruct;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -39,6 +42,15 @@ class AuthConfig {
     @Bean
     AuthContext authContext() {
         return new AuthContext(AuthConfig::currentUser);
+    }
+
+    @Bean
+    UserDirectory userDirectory(SysUserMapper sysUserMapper) {
+        return new UserDirectory(ids -> sysUserMapper.selectActiveByIds(ids).stream()
+                .collect(Collectors.toUnmodifiableMap(
+                        SysUserEntity::getId,
+                        user -> new UserSummary(
+                                user.getId(), user.getNickname(), user.getAvatarUrl(), user.getBio()))));
     }
 
     @PostConstruct
